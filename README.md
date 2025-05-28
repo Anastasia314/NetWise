@@ -36,6 +36,19 @@ NetWise/
    poetry run uvicorn app.main:app --reload
    ```
 
+## Running the Telegram Bot
+
+1. Get your Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+2. Add your bot token to `.env` file:
+   ```
+   TELEGRAM_BOT_TOKEN="your_bot_token_here"
+   ```
+3. Run the bot:
+   ```bash
+   poetry run python -m bot.main
+   ```
+4. Open your bot in Telegram and send `/start` command to verify it's working
+
 ## Development
 
 This project uses Poetry for dependency management. Make sure to:
