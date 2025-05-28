@@ -6,19 +6,19 @@
 This feature establishes the foundational structure for the NetWise FastAPI backend application. It includes initializing the FastAPI app, setting up configuration management for environment variables, integrating the Supabase client for database interaction, and creating a basic health check endpoint to verify the application is running. This setup is crucial before any specific business logic or API endpoints are developed.
 
 **Tasks:**
-*   `- [ ]` **Commit 1: Feat: Initialize basic FastAPI app structure**
+*   `- [x]` **Commit 1: Feat: Initialize basic FastAPI app structure**
     *   Create `app/main.py`.
     *   Instantiate a basic FastAPI application.
-*   `- [ ]` **Commit 2: Feat: Implement initial configuration loading**
+*   `- [x]` **Commit 2: Feat: Implement initial configuration loading**
     *   Create `app/core/config.py`.
     *   Define a Pydantic `Settings` class (inheriting from `BaseSettings`) to load basic application settings (e.g., `APP_NAME: str = "NetWise"`).
     *   Update `.env.example` to include `APP_NAME` (or rely on default).
-*   `- [ ]` **Commit 3: Feat: Add Supabase client setup and configuration**
+*   `- [x]` **Commit 3: Feat: Add Supabase client setup and configuration**
     *   Add `supabase-py` to project dependencies.
     *   Create `app/db/supabase_client.py` with a function to initialize and return a Supabase client instance.
     *   Update `app/core/config.py` to include and load `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` environment variables.
     *   Update `.env.example` with placeholders for `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
-*   `- [ ]` **Commit 4: Feat: Implement health check endpoint**
+*   `- [x]` **Commit 4: Feat: Implement health check endpoint**
     *   Modify `app/main.py` to add a `/health` GET endpoint.
     *   The endpoint should return a simple JSON response, e.g., `{"status": "ok"}`.
 
