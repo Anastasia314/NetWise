@@ -18,12 +18,12 @@
     *   `- [x]` Create `.gitignore` file.
     *   `- [x]` Create `.env.example` file with initial placeholder variables.
     *   `- [x]` Local `.env` file setup for development.
-*   `- [ ]` **Supabase Setup**
-    *   `- [ ]` Create Supabase project.
-    *   `- [ ]` Note Supabase URL and `anon` & `service_role` keys. Add to `.env`.
-    *   `- [ ]` Design initial DB schema for `users` table (core fields only for now).
-        *   `- [ ]` Implement `users` table in Supabase UI or via SQL.
-    *   `- [ ]` Set up basic RLS for `users` table (users can only see/edit their own data).
+*   `- [x]` **Supabase Setup**
+    *   `- [x]` Create Supabase project.
+    *   `- [x]` Note Supabase URL and `anon` & `service_role` keys. Add to `.env`.
+    *   `- [x]` Design initial DB schema for `users` table (core fields only for now).
+        *   `- [x]` Implement `users` table in Supabase UI or via SQL.
+    *   `- [x]` Set up basic RLS for `users` table (users can only see/edit their own data).
 *   `- [ ]` **Basic Backend API Setup (FastAPI)**
     *   `- [ ]` `app/main.py`: Initialize FastAPI app.
     *   `- [ ]` `app/core/config.py`: Load environment variables.

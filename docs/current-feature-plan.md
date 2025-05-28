@@ -5,12 +5,12 @@ Initialize the Supabase project, configure environment variables for the applica
 
 **Tasks:**
 
-*   `- [ ]` **(Manual Action)** Create a new project on the Supabase platform (supabase.com).
-*   `- [ ]` **(Manual Action)** Securely note the Supabase Project URL, `anon` key, and `service_role` key provided after project creation.
-*   `- [ ]` **Commit 1:** Add Supabase URL and Key placeholders to `.env.example`.
+*   `- [x]` **(Manual Action)** Create a new project on the Supabase platform (supabase.com).
+*   `- [x]` **(Manual Action)** Securely note the Supabase Project URL, `anon` key, and `service_role` key provided after project creation.
+*   `- [x]` **Commit 1:** Add Supabase URL and Key placeholders to `.env.example`.
     *   Description: Update the `.env.example` file to include `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` as placeholders for other developers.
-*   `- [ ]` **(Local Setup)** Populate the local `.env` file with the actual Supabase credentials obtained in the manual step. This file should be in `.gitignore`.
-*   `- [ ]` **Commit 2:** Create SQL migration script for the initial `users` table schema.
+*   `- [x]` **(Local Setup)** Populate the local `.env` file with the actual Supabase credentials obtained in the manual step. This file should be in `.gitignore`.
+*   `- [x]` **Commit 2:** Create SQL migration script for the initial `users` table schema.
     *   Description: Define the DDL for the `users` table.
     *   Table: `users`
     *   Columns:
@@ -20,8 +20,8 @@ Initialize the Supabase project, configure environment variables for the applica
         *   `created_at` (TIMESTAMPTZ, NOT NULL, DEFAULT `now()`) - Timestamp of user creation.
         *   `updated_at` (TIMESTAMPTZ, NOT NULL, DEFAULT `now()`) - Timestamp of last user profile update.
     *   Include a trigger function and trigger to automatically update the `updated_at` column on any row modification.
-*   `- [ ]` **(Manual/CLI Action)** Apply the `users` table migration script to the Supabase project using the Supabase SQL editor or Supabase CLI.
-*   `- [ ]` **Commit 3:** Create SQL migration script for basic Row Level Security (RLS) on the `users` table.
+*   `- [x]` **(Manual/CLI Action)** Apply the `users` table migration script to the Supabase project using the Supabase SQL editor or Supabase CLI.
+*   `- [x]` **Commit 3:** Create SQL migration script for basic Row Level Security (RLS) on the `users` table.
     *   Description: Define RLS policies to control data access.
     *   Enable RLS on the `users` table.
     *   Policy 1: Allow authenticated users to `SELECT` their own record based on `auth.uid()` matching `telegram_id` (if using Supabase Auth) or a custom function checking `telegram_id`. For MVP with bot-driven interaction, using `service_role` key from backend might mean RLS for select/update is primarily to prevent users from accessing each other's data if they somehow got direct DB access with a user-specific role, or if Supabase Auth is used later. For now, policies can be based on `auth.jwt() ->> 'sub'` if we assume Telegram ID will be in the JWT, or more generically, a policy that checks a session variable set by the backend.
@@ -42,7 +42,7 @@ Initialize the Supabase project, configure environment variables for the applica
                     *   Policy for `INSERT` (if users were to insert themselves with anon key + RLS): `CREATE POLICY "Users can insert their own data." ON public.users FOR INSERT WITH CHECK (auth.uid()::bigint = telegram_id);`
                     *   (Note: `auth.uid()` returns UUID. If `telegram_id` is `BIGINT`, direct comparison won't work. Need to ensure `telegram_id` is in JWT claim and extract, e.g., `auth.jwt()->>'user_telegram_id')::bigint = telegram_id`. For MVP and simplicity, assume the backend API handles authorization and uses the service_role key, making these RLS policies for future client-side auth with Supabase.) For now, we can define them for `anon` and `authenticated` roles and note that the backend (service_role) bypasses them.
                     *   Final RLS approach for this task: Enable RLS. Backend uses service role. For any calls using `anon` or user-specific JWTs (future), they should only be able to operate on their own data.
-*   `- [ ]` **(Manual/CLI Action)** Apply the RLS migration script to the `users` table in the Supabase project.
+*   `- [x]` **(Manual/CLI Action)** Apply the RLS migration script to the `users` table in the Supabase project.
 
 **Files involved:**
 *   `.env.example` (modified)
