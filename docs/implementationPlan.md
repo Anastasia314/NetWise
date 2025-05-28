@@ -45,9 +45,9 @@
         *   `- [x]` (Placeholder for tests & linters).
         *   `- [x]` Deploy to Railway (basic backend service).
     *   `- [x]` Do the same for the bot service on Railway.
-*   `- [ ]` **Linting & Formatting**
-    *   `- [ ]` Choose and configure linters/formatters (e.g., Ruff/Black).
-    *   `- [ ]` Add linting/formatting checks to CI/CD.
+*   `- [x]` **Linting & Formatting**
+    *   `- [x]` Choose and configure linters/formatters (e.g., Ruff/Black).
+    *   `- [x]` Add linting/formatting checks to CI/CD.
 
 ---
 
