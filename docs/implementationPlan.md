@@ -33,18 +33,18 @@
     *   `- [x]` `bot/main.py`: Initialize Bot and Dispatcher.
     *   `- [x]` Load Bot Token from `.env`.
     *   `- [x]` Implement a basic `/start` command handler that replies with a welcome message.
-*   `- [ ]` **CI/CD Initial Setup (GitHub Actions on Railway)**
-    *   `- [ ]` Connect Railway to GitHub repository.
+*   `- [x]` **CI/CD Initial Setup (GitHub Actions on Railway)**
+    *   `- [x]` Connect Railway to GitHub repository.
     *   `- [x]` Create basic `Dockerfile` for backend API.
     *   `- [x]` Create basic `Dockerfile` for bot (or plan to run in same container if simple enough for now).
-    *   `- [ ]` Create initial `.github/workflows/ci_cd.yml` for backend:
-        *   `- [ ]` Trigger on push to `main`.
-        *   `- [ ]` Checkout code.
-        *   `- [ ]` Set up Python.
-        *   `- [ ]` Install dependencies.
-        *   `- [ ]` (Placeholder for tests & linters).
-        *   `- [ ]` Deploy to Railway (basic backend service).
-    *   `- [ ]` Do the same for the bot service on Railway.
+    *   `- [x]` Create initial `.github/workflows/ci_cd.yml` for backend:
+        *   `- [x]` Trigger on push to `main`.
+        *   `- [x]` Checkout code.
+        *   `- [x]` Set up Python.
+        *   `- [x]` Install dependencies.
+        *   `- [x]` (Placeholder for tests & linters).
+        *   `- [x]` Deploy to Railway (basic backend service).
+    *   `- [x]` Do the same for the bot service on Railway.
 *   `- [ ]` **Linting & Formatting**
     *   `- [ ]` Choose and configure linters/formatters (e.g., Ruff/Black).
     *   `- [ ]` Add linting/formatting checks to CI/CD.
