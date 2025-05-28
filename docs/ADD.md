@@ -1,12 +1,10 @@
 # **Architectural Design Document (ADD)**
 
-**Product Name:** NetWise
-
-**Owner:** Anastasia314
+**Product Name:** NetWise  
+**Owner:** Anastasia314  
+**Date:** 2025-05-28
 
 **Version:** 1.0 (MVP)
-
-**Date:** 2025-05-27
 
 ---
 
@@ -72,8 +70,6 @@ NetWise will be a cloud-hosted application with a three-tier architecture:
 2.  **Application Tier:** Python backend (FastAPI) handling business logic, AI matching, and API services.
 3.  **Data Tier:** Supabase (PostgreSQL) for data persistence and BaaS features.
 
-![System Architecture Diagram](https://i.imgur.com/Z0zJ31W.png)
-*(Conceptual Diagram - replace with a more detailed one if using a diagramming tool)*
 
 **User Interaction Flow (Example: Making a Request):**
 1.  User interacts with the Telegram Bot (e.g., `/new_request` command).
@@ -192,12 +188,12 @@ NetWise will be a cloud-hosted application with a three-tier architecture:
         *   `suggested_user_id` (BigInt, FK to `users.telegram_id`)
         *   `introducer_user_id` (BigInt, FK to `users.telegram_id`, nullable)
         *   `match_score` (Float, optional)
-        *   `status` (Enum: "suggested", "intro_requested_by_requester", "helper_accepted_intro", "helper_declined_intro", "intro_made_by_introducer")
+        *   `status` (Enum: "suggested", "intro_requested", "helper_accepted_intro", "helper_declined_intro")
         *   `created_at` (Timestamp)
     *   **`activity_history`**:
         *   `id` (UUID, PK)
         *   `user_id` (BigInt, FK to `users.telegram_id`)
-        *   `action_type` (Enum: "helped_on_request", "sent_request", "received_intro")
+        *   `action_type` (Enum: "helped_on_request")
         *   `related_request_id` (UUID, FK to `requests.id`, nullable)
         *   `points_change` (Int)
         *   `timestamp` (Timestamp)
@@ -210,25 +206,51 @@ NetWise will be a cloud-hosted application with a three-tier architecture:
         *   `end_date` (Timestamp)
         *   `status` (Enum: "active", "canceled", "past_due")
 
-### 4.4. AI Matching Service
-*   **Technology:** OpenAI Embeddings API, Cosine Similarity / Faiss (if vector search needed at scale, Supabase `pg_vector` can handle this initially).
-*   **Responsibilities:**
-    *   Generate embeddings for user profiles (skills, goals, interests) and request descriptions.
-    *   Perform similarity searches to find relevant users for a given request.
-    *   Incorporate trust scores, connection degrees (1st, 2nd), and request freshness into the matching algorithm.
-*   **Logic Flow:**
-    1.  Receive request text and requester's graph (friends, friends of friends).
-    2.  Generate embedding for request text (via OpenAI).
-    3.  For each candidate in the graph:
-        a.  Retrieve their profile data/embedding.
-        b.  Calculate relevance score (cosine similarity between request embedding and profile embedding, or keyword matching score).
-        c.  Apply weights/boosts based on:
-            *   Connection degree (Friend > Friend of Friend).
-            *   Trust score (higher is better).
-            *   User activity/freshness.
-    4.  Filter and rank candidates.
-    5.  Return top N candidates.
-*   **Fallback:** For MVP, if OpenAI embedding integration is complex or costly initially, a simpler keyword-matching algorithm can be used as a baseline, with embeddings as a planned upgrade. Supabase `pg_vector` extension is ideal for storing and querying embeddings.
+### 4.4. Matching Service (MVP: Keyword/Profile-based)
+
+For the Minimum Viable Product (MVP), the matching service will focus on identifying relevant users for a given request using keyword-based and profile attribute comparisons, rather than complex AI embeddings. This approach allows for faster initial development while still providing core matching functionality.
+
+*   **Technology (MVP):**
+    *   Direct database queries using SQL (e.g., `ILIKE` for case-insensitive partial string matching, PostgreSQL Full-Text Search - FTS).
+    *   Python for implementing the core matching logic, keyword extraction, and scoring algorithms.
+*   **Post-MVP Enhancement:**
+    *   OpenAI Embeddings API for generating semantic vector representations.
+    *   Cosine Similarity or Faiss for vector search, leveraging Supabase's `pg_vector` extension for efficient storage and querying of embeddings.
+
+*   **Responsibilities (MVP):**
+    *   To receive a user's request and their connection graph (1st and 2nd-degree friends).
+    *   To extract relevant keywords from the request description.
+    *   To search through the profiles of users within the connection graph.
+    *   To identify potential helpers based on matches between request keywords and user profile attributes (such as `skills`, `role`, `industry`, `goals`, `interests`).
+    *   To rank these potential helpers by a relevance score that incorporates connection degree, trust score, and user activity.
+
+*   **Logic Flow (MVP):**
+
+    1.  **Input Reception:** The service receives the request text from the user and identifies the requester's 1st-degree friends and 2nd-degree friends (friends of friends) from the `connections` table.
+    2.  **Keyword Extraction:**
+        *   Keywords are extracted from the `description_text` of the `requests` table. This can involve simple techniques like splitting the text by spaces, removing common stop words (e.g., "a", "the", "is"), and potentially basic stemming.
+        *   Keywords from the requester's own `goals` (from their `users` profile) related to the request might also be considered.
+    3.  **Candidate Evaluation Loop:** For each potential helper (user) in the requester's 1st and 2nd-degree network:
+        a.  **Profile Retrieval:** Fetch the candidate's profile data from the `users` table, including `skills` (Text[]), `role` (Text), `industry` (Text), `goals` (Text[]), and `interests` (Text[]).
+        b.  **Keyword Matching & Scoring:**
+            *   Compare the extracted request keywords against the candidate's profile fields.
+            *   A simple scoring mechanism will be applied:
+                *   Points awarded for each keyword match found in `skills`, `role`, `industry`.
+                *   Potentially fewer points for matches in `goals` or `interests` if deemed less indicative of direct help capability.
+                *   PostgreSQL's Full-Text Search (`tsvector` and `tsquery`) can be used for more sophisticated keyword matching than simple `ILIKE` if implemented.
+        c.  **Score Weighting & Adjustment:** The raw match score is then adjusted by:
+            *   **Connection Degree:** Matches with 1st-degree friends receive a higher weight than matches with 2nd-degree friends.
+            *   **Trust Score:** The `trust_score` (1-3) from the `connections` table (for 1st-degree friends, or an aggregated/inferred score for 2nd-degree) positively influences the score.
+            *   **User Activity:** A boost might be applied if the candidate `user.last_active_at` is recent, or a penalty if they are inactive (as per PRD point 5.4 `is_active_in_search`).
+            *   **History of Help / Social Points (PRD point 5.1):** Users with higher `social_points` or a history of providing help (tracked in `activity_history`) might receive a slight boost, signifying reliability.
+    4.  **Filtering:** Candidates with a final weighted score below a predefined threshold are filtered out.
+    5.  **Ranking:** The remaining candidates are ranked in descending order of their final weighted score.
+    6.  **Output:** The top N ranked candidates are returned to the Backend API to be presented to the requester.
+
+*   **Post-MVP Evolution:**
+    The matching service is designed to be significantly enhanced post-MVP. The plan is to integrate OpenAI Embeddings to create rich, semantic vector representations for both user profiles (based on their `skills`, `goals`, `interests`, `role`, `industry`) and request descriptions.
+    These embeddings will be stored in Supabase using the `pg_vector` extension. Matching will then be performed using vector similarity search (e.g., cosine similarity), which can identify semantically similar concepts even if the exact keywords don't match. This will lead to more nuanced, accurate, and contextually relevant matches. The MVP's keyword-based system can then serve as a fallback or a supplementary signal in the advanced matching algorithm.
+    
 
 ### 4.5. Payment Integration
 *   **Technology:** Stripe (or similar, like Paddle, LemonSqueezy). Supabase can integrate with Stripe.
