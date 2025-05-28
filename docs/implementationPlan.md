@@ -29,10 +29,10 @@
     *   `- [x]` `app/core/config.py`: Load environment variables.
     *   `- [x]` `app/db/supabase_client.py`: Function to initialize and provide Supabase client.
     *   `- [x]` Create a simple health check endpoint (e.g., `/health`).
-*   `- [ ]` **Basic Telegram Bot Setup (aiogram)**
-    *   `- [ ]` `bot/main.py`: Initialize Bot and Dispatcher.
-    *   `- [ ]` Load Bot Token from `.env`.
-    *   `- [ ]` Implement a basic `/start` command handler that replies with a welcome message.
+*   `- [x]` **Basic Telegram Bot Setup (aiogram)**
+    *   `- [x]` `bot/main.py`: Initialize Bot and Dispatcher.
+    *   `- [x]` Load Bot Token from `.env`.
+    *   `- [x]` Implement a basic `/start` command handler that replies with a welcome message.
 *   `- [ ]` **CI/CD Initial Setup (GitHub Actions on Railway)**
     *   `- [ ]` Connect Railway to GitHub repository.
     *   `- [ ]` Create basic `Dockerfile` for backend API.
