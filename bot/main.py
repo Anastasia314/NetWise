@@ -2,8 +2,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 import asyncio
 import logging
-from bot.core.config import get_settings
-from bot.handlers.common_handlers import handle_start
+from core.config import get_settings
+from handlers.common_handlers import handle_start
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

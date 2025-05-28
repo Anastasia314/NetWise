@@ -4,8 +4,7 @@ FROM python:3.11-slim-bullseye
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PIP_NO_CACHE_DIR=1
 
 # Set working directory
 WORKDIR /app
@@ -22,7 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy bot application code
-COPY . .
+COPY . /app/
 
 # Command to run the bot
 CMD ["python", "main.py"] 
