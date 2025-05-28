@@ -35,8 +35,8 @@
     *   `- [x]` Implement a basic `/start` command handler that replies with a welcome message.
 *   `- [ ]` **CI/CD Initial Setup (GitHub Actions on Railway)**
     *   `- [ ]` Connect Railway to GitHub repository.
-    *   `- [ ]` Create basic `Dockerfile` for backend API.
-    *   `- [ ]` Create basic `Dockerfile` for bot (or plan to run in same container if simple enough for now).
+    *   `- [x]` Create basic `Dockerfile` for backend API.
+    *   `- [x]` Create basic `Dockerfile` for bot (or plan to run in same container if simple enough for now).
     *   `- [ ]` Create initial `.github/workflows/ci_cd.yml` for backend:
         *   `- [ ]` Trigger on push to `main`.
         *   `- [ ]` Checkout code.
