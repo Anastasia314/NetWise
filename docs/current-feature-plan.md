@@ -4,16 +4,16 @@
 This task covers the initial setup of the NetWise project, including version control, directory structure, Python environment initialization with core dependencies, and essential configuration files like `.gitignore` and `.env.example`. This foundational work enables subsequent development phases.
 
 **Tasks:**
-- [ ] Commit 1: Initialize local Git repository and add a basic README.
-- [ ] Commit 2: Create initial top-level project directory structure.
-- [ ] Commit 3: Initialize Poetry and create `pyproject.toml`.
-- [ ] Commit 4: Add FastAPI and Uvicorn dependencies.
-- [ ] Commit 5: Add Pydantic dependency.
-- [ ] Commit 6: Add Aiogram dependency.
-- [ ] Commit 7: Add HTTPX dependency.
-- [ ] Commit 8: Add python-dotenv dependency.
-- [ ] Commit 9: Add Python .gitignore file.
-- [ ] Commit 10: Create `.env.example` with initial placeholder variables.
+- [x] Commit 1: Initialize local Git repository and add a basic README.
+- [x] Commit 2: Create initial top-level project directory structure.
+- [x] Commit 3: Initialize Poetry and create `pyproject.toml`.
+- [x] Commit 4: Add FastAPI and Uvicorn dependencies.
+- [x] Commit 5: Add Pydantic dependency.
+- [x] Commit 6: Add Aiogram dependency.
+- [x] Commit 7: Add HTTPX dependency.
+- [x] Commit 8: Add python-dotenv dependency.
+- [x] Commit 9: Add Python .gitignore file.
+- [x] Commit 10: Create `.env.example` with initial placeholder variables.
 
 **Files involved:**
 *   `README.md` (Created/Modified)

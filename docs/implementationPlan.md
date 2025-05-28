@@ -10,14 +10,14 @@
 
 ### Phase 0: Foundation & Setup (Essential Before Feature Development)
 
-*   `- [ ]` **Project Initialization & Environment Setup**
-    *   `- [ ]` Create Git repository (e.g., GitHub).
-    *   `- [ ]` Set up project structure (folders as outlined in ADD).
-    *   `- [ ]` Initialize Python environment (Poetry or venv + pip).
-        *   `- [ ]` Install core dependencies: `fastapi`, `uvicorn`, `pydantic`, `aiogram`, `httpx`, `python-dotenv`.
-    *   `- [ ]` Create `.gitignore` file.
-    *   `- [ ]` Create `.env.example` file with initial placeholder variables.
-    *   `- [ ]` Local `.env` file setup for development.
+*   `- [x]` **Project Initialization & Environment Setup**
+    *   `- [x]` Create Git repository (e.g., GitHub).
+    *   `- [x]` Set up project structure (folders as outlined in ADD).
+    *   `- [x]` Initialize Python environment (Poetry or venv + pip).
+        *   `- [x]` Install core dependencies: `fastapi`, `uvicorn`, `pydantic`, `aiogram`, `httpx`, `python-dotenv`.
+    *   `- [x]` Create `.gitignore` file.
+    *   `- [x]` Create `.env.example` file with initial placeholder variables.
+    *   `- [x]` Local `.env` file setup for development.
 *   `- [ ]` **Supabase Setup**
     *   `- [ ]` Create Supabase project.
     *   `- [ ]` Note Supabase URL and `anon` & `service_role` keys. Add to `.env`.
