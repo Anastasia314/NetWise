@@ -1,43 +1,46 @@
-# current-feature-plan.md
+# **Current Feature Plan: Basic Telegram Bot Setup (aiogram)**
 
-**Title:** Basic Backend API Setup (FastAPI)
-
-**Feature Description:**
-This feature establishes the foundational structure for the NetWise FastAPI backend application. It includes initializing the FastAPI app, setting up configuration management for environment variables, integrating the Supabase client for database interaction, and creating a basic health check endpoint to verify the application is running. This setup is crucial before any specific business logic or API endpoints are developed.
+**Feature description:**
+This feature establishes the foundational structure for the NetWise Telegram bot using the `aiogram` library. It includes initializing the bot dispatcher, loading the bot token securely from environment variables, and implementing a basic `/start` command handler to confirm the bot is operational and responsive.
 
 **Tasks:**
-*   `- [x]` **Commit 1: Feat: Initialize basic FastAPI app structure**
-    *   Create `app/main.py`.
-    *   Instantiate a basic FastAPI application.
-*   `- [x]` **Commit 2: Feat: Implement initial configuration loading**
-    *   Create `app/core/config.py`.
-    *   Define a Pydantic `Settings` class (inheriting from `BaseSettings`) to load basic application settings (e.g., `APP_NAME: str = "NetWise"`).
-    *   Update `.env.example` to include `APP_NAME` (or rely on default).
-*   `- [x]` **Commit 3: Feat: Add Supabase client setup and configuration**
-    *   Add `supabase-py` to project dependencies.
-    *   Create `app/db/supabase_client.py` with a function to initialize and return a Supabase client instance.
-    *   Update `app/core/config.py` to include and load `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` environment variables.
-    *   Update `.env.example` with placeholders for `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
-*   `- [x]` **Commit 4: Feat: Implement health check endpoint**
-    *   Modify `app/main.py` to add a `/health` GET endpoint.
-    *   The endpoint should return a simple JSON response, e.g., `{"status": "ok"}`.
+- [ ] `feat(bot): Initialize aiogram Bot and Dispatcher structure in bot/main.py`
+    - [ ] Create `bot/main.py`.
+    - [ ] Add imports for `aiogram.Bot`, `aiogram.Dispatcher`, `aiogram.types`, `asyncio`.
+    - [ ] Initialize `Dispatcher` instance.
+    - [ ] Implement basic `async def main():` function to initialize `Bot` (with a placeholder token for now) and start polling using `dp.start_polling(bot)`.
+    - [ ] Add `if __name__ == '__main__': asyncio.run(main())`.
+    - [ ] Add `aiogram` to project dependencies.
+- [ ] `feat(bot): Load Telegram Bot Token from environment variables`
+    - [ ] Create `bot/core/config.py`.
+    - [ ] Implement settings loading for `TELEGRAM_BOT_TOKEN` (e.g., using `os.getenv` or `pydantic-settings` with `python-dotenv`).
+    - [ ] Update `bot/main.py` to import and use `TELEGRAM_BOT_TOKEN` from `bot.core.config` for `Bot` initialization.
+    - [ ] Add `TELEGRAM_BOT_TOKEN=""` to `.env.example`.
+    - [ ] Add `python-dotenv` (and `pydantic-settings` if used) to project dependencies.
+- [ ] `feat(bot): Implement basic /start command handler`
+    - [ ] Create `bot/handlers/common_handlers.py`.
+    - [ ] Import `aiogram.types` and `aiogram.filters.CommandStart`.
+    - [ ] Define `async def handle_start(message: types.Message):` that replies with a welcome message (e.g., `await message.answer("Welcome to NetWise!")`).
+    - [ ] In `bot/main.py`, import `handle_start` and `CommandStart`.
+    - [ ] Register the handler in `main()`: `dp.message.register(handle_start, CommandStart())`.
+- [ ] `test(bot): Verify bot starts and responds to /start command`
+    - [ ] Locally run the bot.
+    - [ ] Send `/start` command to the bot in Telegram and verify the welcome message is received.
 
-**Files Involved:**
-*   `app/main.py` (Created then Modified)
-*   `app/core/config.py` (Created then Modified)
-*   `app/db/supabase_client.py` (Created)
-*   `.env.example` (Modified)
-*   `pyproject.toml` or `requirements.txt` (Modified for `supabase-py`)
-*   (Potentially `app/__init__.py`, `app/core/__init__.py`, `app/db/__init__.py` if they don't exist and are needed for module structure, though Phase 0 implies project structure setup)
+**Files involved:**
+*   `bot/main.py` (new/modified)
+*   `bot/core/config.py` (new)
+*   `bot/handlers/common_handlers.py` (new)
+*   `.env.example` (modified)
+*   `.env` (modified by user locally)
+*   `pyproject.toml` or `requirements.txt` (modified for new dependencies)
 
-**External Dependencies:**
-*   `fastapi` (Assumed from Phase 0 "Core Dependencies")
-*   `uvicorn` (Assumed from Phase 0 "Core Dependencies")
-*   `pydantic` (Assumed from Phase 0 "Core Dependencies")
-*   `python-dotenv` (Assumed from Phase 0 "Core Dependencies", Pydantic BaseSettings uses it if available)
-*   `supabase-py` (To be added in Commit 3)
+**External dependencies:**
+*   `aiogram`
+*   `python-dotenv`
+*   `pydantic-settings` (optional, if chosen for settings management)
 
 **Notes:**
-*   This plan assumes that Phase 0 of the `implementationPlan.md` (Project Initialization & Environment Setup) has been completed, meaning the basic project directory structure (`app/`, `app/core/`, `app/db/`) is in place, and core dependencies like `fastapi`, `uvicorn`, `pydantic`, and `python-dotenv` are already part of the project's Python environment.
-*   `SUPABASE_SERVICE_KEY` is used as it's more descriptive for backend service role access compared to a generic `SUPABASE_KEY`.
-*   Ensure `.env` (local development) is updated with actual Supabase credentials after setting up the Supabase project (as indicated in Phase 0 `Supabase Setup` task).
+*   A `TELEGRAM_BOT_TOKEN` must be obtained from BotFather on Telegram and added to the local `.env` file for testing.
+*   This setup uses polling for simplicity in MVP. Webhooks can be considered later for production scalability.
+*   Ensure the `bot` directory is created at the root of the project.

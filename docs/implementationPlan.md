@@ -24,11 +24,11 @@
     *   `- [x]` Design initial DB schema for `users` table (core fields only for now).
         *   `- [x]` Implement `users` table in Supabase UI or via SQL.
     *   `- [x]` Set up basic RLS for `users` table (users can only see/edit their own data).
-*   `- [ ]` **Basic Backend API Setup (FastAPI)**
-    *   `- [ ]` `app/main.py`: Initialize FastAPI app.
-    *   `- [ ]` `app/core/config.py`: Load environment variables.
-    *   `- [ ]` `app/db/supabase_client.py`: Function to initialize and provide Supabase client.
-    *   `- [ ]` Create a simple health check endpoint (e.g., `/health`).
+*   `- [x]` **Basic Backend API Setup (FastAPI)**
+    *   `- [x]` `app/main.py`: Initialize FastAPI app.
+    *   `- [x]` `app/core/config.py`: Load environment variables.
+    *   `- [x]` `app/db/supabase_client.py`: Function to initialize and provide Supabase client.
+    *   `- [x]` Create a simple health check endpoint (e.g., `/health`).
 *   `- [ ]` **Basic Telegram Bot Setup (aiogram)**
     *   `- [ ]` `bot/main.py`: Initialize Bot and Dispatcher.
     *   `- [ ]` Load Bot Token from `.env`.
