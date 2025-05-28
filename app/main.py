@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db.supabase_client import get_supabase_client
@@ -6,9 +6,9 @@ from app.db.supabase_client import get_supabase_client
 settings = get_settings()
 
 app = FastAPI(
-    title=settings.APP_NAME,
-    description="NetWise - A Telegram bot for network monitoring and management",
-    version=settings.APP_VERSION,
+    title=settings.API_TITLE,
+    description=settings.API_DESCRIPTION,
+    version=settings.API_VERSION,
     debug=settings.DEBUG
 )
 
@@ -29,7 +29,8 @@ async def root():
     return {
         "message": f"Welcome to {settings.APP_NAME} API",
         "status": "operational",
-        "version": settings.APP_VERSION
+        "version": settings.APP_VERSION,
+        "environment": settings.APP_ENV
     }
 
 @app.get("/health")
@@ -49,12 +50,17 @@ async def health_check():
         return {
             "status": "healthy",
             "database": "connected",
-            "version": settings.APP_VERSION
+            "version": settings.APP_VERSION,
+            "environment": settings.APP_ENV
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e),
-            "version": settings.APP_VERSION
-        }, 500 
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": str(e),
+                "version": settings.APP_VERSION,
+                "environment": settings.APP_ENV
+            }
+        ) 
