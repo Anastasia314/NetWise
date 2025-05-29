@@ -5,54 +5,35 @@ This module contains dependencies for API endpoints, such as retrieving the Supa
 and extracting user identity from request headers.
 """
 
-from fastapi import Depends, Header, HTTPException
-from supabase import Client
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from supabase.client import Client
+from typing import Annotated
 
-from app.db.supabase_client import get_supabase_client as get_db_client
-from app.services.user_service import (
-    create_or_get_user_service,
-    get_user_profile_service,
-    update_user_profile_service
-)
+from db.supabase_client import get_supabase_client
+from services.user_service import UserService
 
-def get_supabase_client() -> Client:
-    """
-    Dependency to get Supabase client instance.
-    
-    Returns:
-        Client: Initialized Supabase client
-    """
-    return get_db_client()
+security = HTTPBearer()
 
-def get_current_telegram_id(x_telegram_id: int = Header(..., description="Telegram user ID")) -> int:
+async def get_supabase_client() -> Client:
     """
-    Dependency to extract and validate Telegram ID from request header.
-    
-    Args:
-        x_telegram_id (int): Telegram user ID from X-Telegram-Id header
-        
-    Returns:
-        int: Validated Telegram user ID
-        
-    Raises:
-        HTTPException: If Telegram ID is not provided or invalid
+    Get Supabase client instance.
     """
-    if not x_telegram_id:
+    return get_supabase_client()
+
+async def get_current_telegram_id(credentials: str) -> str:
+    """
+    Get current user's Telegram ID from credentials.
+    """
+    if not credentials:
         raise HTTPException(
-            status_code=400,
-            detail="X-Telegram-Id header is required"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
         )
-    return x_telegram_id
+    return credentials
 
-def get_user_service():
+async def get_user_service(db_client: Client = Depends(get_supabase_client)) -> UserService:
     """
-    Dependency to get user service functions.
-    
-    Returns:
-        dict: Dictionary containing user service functions
+    Get UserService instance.
     """
-    return {
-        "create_or_get_user": create_or_get_user_service,
-        "get_user_profile": get_user_profile_service,
-        "update_user_profile": update_user_profile_service
-    } 
+    return UserService(db_client) 

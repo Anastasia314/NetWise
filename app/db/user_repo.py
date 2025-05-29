@@ -5,34 +5,41 @@ This module provides functions for creating, retrieving, and updating user recor
 
 from typing import Optional
 from datetime import datetime
-from supabase import Client
+from supabase.client import Client
 
-from app.models.user_models import UserCreate, UserProfileUpdate, UserResponse
+from models.user_models import UserResponse
 
 # These imports will be added in the next task
 # from app.models.user_models import UserCreate, UserProfileUpdate, UserResponse 
 
-def get_user_by_telegram_id(db_client: Client, telegram_id: int) -> Optional[UserResponse]:
-    """
-    Fetch a user by their Telegram ID from the Supabase users table.
-    
-    Args:
-        db_client: Supabase client instance
-        telegram_id: The Telegram ID of the user to fetch
-        
-    Returns:
-        UserResponse if user is found, None otherwise
-    """
-    try:
-        response = db_client.table("users").select("*").eq("telegram_id", telegram_id).execute()
-        
+class UserRepository:
+    def __init__(self, db_client: Client):
+        self.db = db_client
+
+    async def get_user_by_telegram_id(self, telegram_id: str) -> Optional[UserResponse]:
+        """
+        Get user by Telegram ID.
+        """
+        response = await self.db.table("users").select("*").eq("telegram_id", telegram_id).single().execute()
         if not response.data:
             return None
-            
+        return UserResponse(**response.data)
+
+    async def create_user(self, user: UserResponse) -> UserResponse:
+        """
+        Create new user.
+        """
+        user_dict = user.model_dump()
+        response = await self.db.table("users").insert(user_dict).execute()
         return UserResponse(**response.data[0])
-    except Exception as e:
-        # Log the error here if needed
-        raise e 
+
+    async def update_user(self, user: UserResponse) -> UserResponse:
+        """
+        Update user profile.
+        """
+        user_dict = user.model_dump()
+        response = await self.db.table("users").update(user_dict).eq("telegram_id", user.telegram_id).execute()
+        return UserResponse(**response.data[0])
 
 def create_user(
     db_client: Client,
