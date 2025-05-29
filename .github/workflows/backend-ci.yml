@@ -1,4 +1,4 @@
-name: Backend CI
+name: API CI
 
 on:
   push:
@@ -36,7 +36,6 @@ jobs:
     
     - name: Run linters
       run: |
-        cd backend
         # TODO: Add linting commands
         echo "Linting will be implemented in the future"
     
