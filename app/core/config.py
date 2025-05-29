@@ -19,7 +19,17 @@ class Settings(BaseSettings):
     # API settings
     API_PREFIX: str = "/api"
     API_TITLE: str = "NetWise API"
-    API_DESCRIPTION: str = "NetWise API Documentation"
+    API_DESCRIPTION: str = """
+    NetWise API provides endpoints for user management and networking features.
+    
+    ## Features
+    * User onboarding and profile management
+    * Professional networking
+    * Skill and interest matching
+    
+    ## Authentication
+    All endpoints require a valid Telegram ID in the X-Telegram-Id header.
+    """
     API_VERSION: str = "0.1.0"
     
     # CORS settings

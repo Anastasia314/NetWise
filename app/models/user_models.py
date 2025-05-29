@@ -20,13 +20,13 @@ from app.models.common_models import SubscriptionTierEnum
 class UserBase(BaseModel):
     """Base model containing common user fields."""
     
-    telegram_id: int
-    name: Optional[str] = None
-    role: Optional[str] = None
-    industry: Optional[str] = None
-    skills: Optional[List[str]] = Field(default_factory=list)
-    goals: Optional[List[str]] = Field(default_factory=list)
-    interests: Optional[List[str]] = Field(default_factory=list)
+    telegram_id: int = Field(description="Unique identifier for the user from Telegram")
+    name: Optional[str] = Field(None, description="User's display name")
+    role: Optional[str] = Field(None, description="User's professional role or job title")
+    industry: Optional[str] = Field(None, description="User's industry or sector")
+    skills: Optional[List[str]] = Field(default_factory=list, description="List of user's professional skills")
+    goals: Optional[List[str]] = Field(default_factory=list, description="List of user's professional goals")
+    interests: Optional[List[str]] = Field(default_factory=list, description="List of user's professional interests")
 
 
 class UserCreate(UserBase):
@@ -91,14 +91,14 @@ class UserInDBBase(UserBase):
     Uses telegram_id as the primary key.
     """
     
-    social_points: int = 0
-    free_requests_remaining: int = 5
-    subscription_tier: Optional[str] = None
-    subscription_expires_at: Optional[datetime] = None
-    last_active_at: Optional[datetime] = None
-    is_active_in_search: bool = True
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    social_points: int = Field(0, description="User's accumulated social points for engagement")
+    free_requests_remaining: int = Field(5, description="Number of free API requests remaining")
+    subscription_tier: Optional[str] = Field(None, description="User's current subscription tier")
+    subscription_expires_at: Optional[datetime] = Field(None, description="Expiration date of the user's subscription")
+    last_active_at: Optional[datetime] = Field(None, description="Timestamp of user's last activity")
+    is_active_in_search: bool = Field(True, description="Whether the user is discoverable in search")
+    created_at: datetime = Field(..., description="Timestamp when the user was created")
+    updated_at: Optional[datetime] = Field(None, description="Timestamp of the last profile update")
     
     class Config:
         """Pydantic model configuration."""
