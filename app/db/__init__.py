@@ -1,3 +1,3 @@
 """
-Database related functionality for the NetWise application
+Database related functionality for the NetWise application.
 """ 

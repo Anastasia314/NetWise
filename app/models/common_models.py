@@ -24,4 +24,4 @@ class SubscriptionTierEnum(str, Enum):
     FREE = "free"  # Basic tier with limited features
     TIER_500 = "tier_500"  # Mid-tier with 500 requests per month
     TIER_1000 = "tier_1000"  # Premium tier with 1000 requests per month
-    UNLIMITED = "unlimited"  # Enterprise tier with unlimited requests 
+    UNLIMITED = "unlimited"  # Enterprise tier with unlimited requests

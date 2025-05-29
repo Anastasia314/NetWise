@@ -67,11 +67,11 @@
     *   `- [x]` Implement `get_user_by_telegram_id(client, telegram_id)`.
     *   `- [x]` Implement `update_user_profile(client, telegram_id, profile_data)`.
     *   `- [x]` Unit tests for repository functions (mocking Supabase client).
-*   `- [ ]` **Backend: User Service (`app/services/user_service.py`)**
-    *   `- [ ]` Implement `create_or_get_user(telegram_id, name, username)`: Logic to handle first interaction.
-    *   `- [ ]` Implement `update_user_profile_service(telegram_id, profile_data)`: Business logic, validation.
-    *   `- [ ]` Implement `get_user_profile_service(telegram_id)`.
-    *   `- [ ]` Unit tests for service functions (mocking repository).
+*   `- [x]` **Backend: User Service (`app/services/user_service.py`)**
+    *   `- [x]` Implement `create_or_get_user(telegram_id, name, username)`: Logic to handle first interaction.
+    *   `- [x]` Implement `update_user_profile_service(telegram_id, profile_data)`: Business logic, validation.
+    *   `- [x]` Implement `get_user_profile_service(telegram_id)`.
+    *   `- [x]` Unit tests for service functions (mocking repository).
 *   `- [ ]` **Backend: User API Endpoints (`app/api/users.py`)**
     *   `- [ ]` Implement `POST /users/register` (or `/users/onboard`): Called by bot on first `/start`.
     *   `- [ ]` Implement `GET /users/{telegram_id}/profile`.
