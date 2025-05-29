@@ -53,9 +53,9 @@
 
 ### Phase 1: Core User Management & Profile (Backend & DB)
 
-*   `- [ ]` **Database Schema Expansion (`users` table)**
-    *   `- [ ]` Add all fields from ADD 4.3 to `users` table in Supabase: `name`, `role`, `industry`, `skills`, `goals`, `interests`, `social_points`, `free_requests_remaining`, `subscription_tier`, `last_active_at`, `is_active_in_search`, etc.
-    *   `- [ ]` Define appropriate data types, defaults, and constraints.
+*   `- [x]` **Database Schema Expansion (`users` table)**
+    *   `- [x]` Add all fields from ADD 4.3 to `users` table in Supabase: `name`, `role`, `industry`, `skills`, `goals`, `interests`, `social_points`, `free_requests_remaining`, `subscription_tier`, `last_active_at`, `is_active_in_search`, etc.
+    *   `- [x]` Define appropriate data types, defaults, and constraints.
 *   `- [ ]` **Backend: User Models (Pydantic)**
     *   `- [ ]` `app/models/user_models.py`:
         *   `- [ ]` `UserBase`, `UserCreate` (for registration/first interaction).

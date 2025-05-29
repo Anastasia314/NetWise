@@ -6,16 +6,16 @@
 This feature involves expanding the `users` table in the Supabase PostgreSQL database to include all necessary fields for comprehensive user profiles, tracking user activity related to social points and request economy, managing subscription details, and enabling AI matching capabilities. This aligns with the schema defined in the Architectural Design Document (ADD section 4.3) for the `users` table.
 
 **Tasks:**
-*   `- [ ] DB: Add `role` (TEXT, NULLABLE) and `industry` (TEXT, NULLABLE) columns to the `users` table.`
-*   `- [ ] DB: Add `skills` (TEXT[], NOT NULL, DEFAULT '{}'), `goals` (TEXT[], NOT NULL, DEFAULT '{}'), `interests` (TEXT[], NOT NULL, DEFAULT '{}') columns to the `users` table.`
-*   `- [ ] DB: Add `social_points` (INTEGER, NOT NULL, DEFAULT 0) column to the `users` table.`
-*   `- [ ] DB: Add `free_requests_remaining` (INTEGER, NOT NULL, DEFAULT 5) column to the `users` table.`
-*   `- [ ] DB: Add `subscription_tier` (TEXT, NULLABLE) and `subscription_expires_at` (TIMESTAMPTZ, NULLABLE) columns to the `users` table.`
-*   `- [ ] DB: Add `last_active_at` (TIMESTAMPTZ, NULLABLE) and `is_active_in_search` (BOOLEAN, NOT NULL, DEFAULT TRUE) columns to the `users` table.`
-*   `- [ ] DB: Enable `pg_vector` extension in Supabase if not already enabled.`
-*   `- [ ] DB: Add `profile_embedding` (vector(1536), NULLABLE) column to the `users` table (assuming OpenAI `text-embedding-ada-002` dimensions).`
-*   `- [ ] DB: Verify `name` (TEXT) column exists (from Phase 0) and is suitable (e.g., NULLABLE).`
-*   `- [ ] DB: Ensure `updated_at` (TIMESTAMPTZ) column is configured to automatically update on row modification (e.g., using a trigger).`
+*   `- [x] DB: Add `role` (TEXT, NULLABLE) and `industry` (TEXT, NULLABLE) columns to the `users` table.`
+*   `- [x] DB: Add `skills` (TEXT[], NOT NULL, DEFAULT '{}'), `goals` (TEXT[], NOT NULL, DEFAULT '{}'), `interests` (TEXT[], NOT NULL, DEFAULT '{}') columns to the `users` table.`
+*   `- [x] DB: Add `social_points` (INTEGER, NOT NULL, DEFAULT 0) column to the `users` table.`
+*   `- [x] DB: Add `free_requests_remaining` (INTEGER, NOT NULL, DEFAULT 5) column to the `users` table.`
+*   `- [x] DB: Add `subscription_tier` (TEXT, NULLABLE) and `subscription_expires_at` (TIMESTAMPTZ, NULLABLE) columns to the `users` table.`
+*   `- [x] DB: Add `last_active_at` (TIMESTAMPTZ, NULLABLE) and `is_active_in_search` (BOOLEAN, NOT NULL, DEFAULT TRUE) columns to the `users` table.`
+*   `- [x] DB: Enable `pg_vector` extension in Supabase if not already enabled.`
+*   `- [x] DB: Add `profile_embedding` (vector(1536), NULLABLE) column to the `users` table (assuming OpenAI `text-embedding-ada-002` dimensions).`
+*   `- [x] DB: Verify `name` (TEXT) column exists (from Phase 0) and is suitable (e.g., NULLABLE).`
+*   `- [x] DB: Ensure `updated_at` (TIMESTAMPTZ) column is configured to automatically update on row modification (e.g., using a trigger).`
 
 **Files Involved:**
 *   SQL migration script(s) (e.g., `supabase/migrations/<timestamp>_expand_users_table.sql`)
