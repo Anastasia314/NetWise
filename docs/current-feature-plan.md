@@ -1,49 +1,51 @@
-# Current Feature Plan
+## `current-feature-plan.md`
 
-Title: Configure Linters and Formatters (Ruff & Black)
+**Title:** Database Schema Expansion (`users` table)
 
-Feature Description:
-This task involves choosing, installing, and configuring code linters and formatters to ensure code quality, consistency, and adherence to style guides across the NetWise project (both backend and bot code). We will use Ruff as an efficient linter (which can also handle some formatting and import sorting) and Black as the primary code formatter. Configuration files will be created to define the rules and settings for these tools.
+**Feature Description:**
+This feature involves expanding the `users` table in the Supabase PostgreSQL database to include all necessary fields for comprehensive user profiles, tracking user activity related to social points and request economy, managing subscription details, and enabling AI matching capabilities. This aligns with the schema defined in the Architectural Design Document (ADD section 4.3) for the `users` table.
 
-Tasks:
-- [ ] Choose Tools:
-    - [x] Confirm Ruff as the linter (for its speed and comprehensive checks, including Flake8, isort, etc.).
-    - [x] Confirm Black as the code formatter (for its opinionated, consistent formatting).
-- [ ] Install Tools:
-    - [ ] Add ruff and black to the project's development dependencies.
-        - [ ] If using Poetry: poetry add ruff black --group dev.
-        - [ ] If using requirements-dev.txt: Add ruff and black to requirements-dev.txt (and potentially create this file if it doesn't exist).
-- [ ] Configure Black:
-    - [ ] Create a pyproject.toml file at the root of the project if it doesn't exist (or update it).
-    - [ ] Add a [tool.black] section to pyproject.toml to specify any Black configurations (e.g., line-length). For NetWise, we'll start with Black's defaults primarily but set a common line length (e.g., 88 or 100, matching ADD's target of 100 users ~ $100 budget implies larger complexity, maybe 100 or 120 is better, but PRD/ADD code style is not explicitly defined, let's pick 88 as a common Python default to start). Let's aim for line-length = 88 for initial setup.
-- [ ] Configure Ruff:
-    - [ ] Add a [tool.ruff] section to pyproject.toml.
-    - [ ] Specify line-length consistent with Black.
-    - [ ] Select a base set of rules to enable (e.g., select = ["E", "F", "W", "I"] - for Pyflakes errors, Flake8 warnings, and isort for import sorting).
-    - [ ] Configure any specific rules to ignore if necessary (e.g., ignore = []).
-    - [ ] Set up Ruff's import sorting (equivalent to isort). [tool.ruff.isort]
-    - [ ] Consider enabling Ruff's formatter if desired, or ensure it doesn't conflict with Black if Black is the primary formatter. (For now, Black will be primary formatter, Ruff for linting and import sorting).
-- [ ] Initial Application:
-    - [ ] Run Black on the existing codebase (backend and bot) to format files.
-    - [ ] Run Ruff on the existing codebase (backend and bot) to identify and (where possible) auto-fix linting issues.
-- [ ] Documentation/Instructions:
-    - [ ] Briefly document how to run Black and Ruff locally in the project's README.md or a CONTRIBUTING.md.
-    - [ ] Recommend VS Code extensions for Ruff and Black for real-time feedback during development.
+**Tasks:**
+*   `- [ ] DB: Add `role` (TEXT, NULLABLE) and `industry` (TEXT, NULLABLE) columns to the `users` table.`
+*   `- [ ] DB: Add `skills` (TEXT[], NOT NULL, DEFAULT '{}'), `goals` (TEXT[], NOT NULL, DEFAULT '{}'), `interests` (TEXT[], NOT NULL, DEFAULT '{}') columns to the `users` table.`
+*   `- [ ] DB: Add `social_points` (INTEGER, NOT NULL, DEFAULT 0) column to the `users` table.`
+*   `- [ ] DB: Add `free_requests_remaining` (INTEGER, NOT NULL, DEFAULT 5) column to the `users` table.`
+*   `- [ ] DB: Add `subscription_tier` (TEXT, NULLABLE) and `subscription_expires_at` (TIMESTAMPTZ, NULLABLE) columns to the `users` table.`
+*   `- [ ] DB: Add `last_active_at` (TIMESTAMPTZ, NULLABLE) and `is_active_in_search` (BOOLEAN, NOT NULL, DEFAULT TRUE) columns to the `users` table.`
+*   `- [ ] DB: Enable `pg_vector` extension in Supabase if not already enabled.`
+*   `- [ ] DB: Add `profile_embedding` (vector(1536), NULLABLE) column to the `users` table (assuming OpenAI `text-embedding-ada-002` dimensions).`
+*   `- [ ] DB: Verify `name` (TEXT) column exists (from Phase 0) and is suitable (e.g., NULLABLE).`
+*   `- [ ] DB: Ensure `updated_at` (TIMESTAMPTZ) column is configured to automatically update on row modification (e.g., using a trigger).`
 
-Files Involved:
-*   pyproject.toml (new or modified)
-*   poetry.lock and pyproject.toml (if using Poetry, for dependency updates)
-*   requirements-dev.txt (if using pip for dev dependencies)
-*   Potentially all *.py files in the backend/ and bot/ directories (will be formatted/linted)
-*   README.md or CONTRIBUTING.md (for usage instructions)
+**Files Involved:**
+*   SQL migration script(s) (e.g., `supabase/migrations/<timestamp>_expand_users_table.sql`)
+*   Potentially Supabase dashboard UI for enabling extensions or quick modifications (changes should be captured in migrations).
 
-External Dependencies:
-*   ruff (Python package)
-*   black (Python package)
-*   Poetry or pip (for installing dev dependencies)
+**External Dependencies:**
+*   Supabase (PostgreSQL)
+*   `pg_vector` PostgreSQL extension (for the `profile_embedding` field)
 
-Notes:
-*   The pyproject.toml file is the standard place for configuring modern Python tools like Black and Ruff.
-*   A common line length should be agreed upon. The ADD mentions maintainability and clean code. 88 is a common default for Black.
-*   This task focuses on setting up and configuring the tools. The next task will integrate these checks into the CI/CD pipeline.
-*   Applying the formatters/linters initially might result in a large number of changed files. This is expected.
+**Notes:**
+*   The `telegram_id` (PK, BigInt, unique) and `created_at` (TIMESTAMPTZ, default now()) columns are assumed to have been created correctly during Phase 0.
+*   The `name` column was likely created in Phase 0; this task includes verifying its existence and type.
+*   The `profile_embedding` field is for future AI matching capabilities. The vector dimension (e.g., 1536) should match the chosen embedding model.
+*   Default values for `social_points` and `free_requests_remaining` are based on PRD.
+*   `TIMESTAMPTZ` (timestamp with time zone) is generally preferred for timestamp fields.
+*   An `updated_at` trigger is a common pattern:
+    ```sql
+    CREATE OR REPLACE FUNCTION public.handle_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE TRIGGER on_users_updated
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_updated_at();
+    ```
+    This trigger would need to be created if not already present from Supabase defaults for the `users` table.
+
+---
