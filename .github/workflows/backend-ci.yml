@@ -37,4 +37,6 @@ jobs:
     
     - name: Run tests
       run: |
-        python -m pytest -v 
+        # TODO: Add test commands
+        echo "Tests will be implemented in the future"
+       

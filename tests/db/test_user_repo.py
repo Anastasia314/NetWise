@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 from supabase.client import Client
 
-from models.user_models import UserCreate, UserProfileUpdate, UserResponse
-from db.user_repo import UserRepository
+from app.models.user_models import UserCreate, UserProfileUpdate, UserResponse
+from app.db.user_repo import UserRepository
 
 @pytest.fixture
 def mock_db_client():
@@ -24,7 +24,7 @@ def user_repo(mock_db_client):
 async def test_get_user_by_telegram_id_user_found(user_repo, mock_db_client):
     """Test get_user_by_telegram_id when user is found in database."""
     # Arrange
-    telegram_id = "123456789"
+    telegram_id = 123456789
     mock_user_data = {
         "telegram_id": telegram_id,
         "name": "Test User",
@@ -50,14 +50,7 @@ async def test_get_user_by_telegram_id_user_found(user_repo, mock_db_client):
     
     # Assert
     assert result is not None
-    assert isinstance(result, UserResponse)
-    assert result.telegram_id == int(telegram_id)
-    assert result.name == mock_user_data["name"]
-    assert result.role == mock_user_data["role"]
-    assert result.industry == mock_user_data["industry"]
-    assert result.skills == mock_user_data["skills"]
-    assert result.goals == mock_user_data["goals"]
-    assert result.interests == mock_user_data["interests"]
+    assert result.model_dump(exclude={"created_at", "updated_at", "last_active_at"}) == {k: v for k, v in mock_user_data.items() if k not in ["created_at", "updated_at", "last_active_at"]}
     
     # Verify the correct chain of calls was made
     mock_db_client.table.assert_called_once_with("users")
@@ -109,12 +102,7 @@ async def test_create_user_success(user_repo, mock_db_client):
     
     # Assert
     assert result is not None
-    assert isinstance(result, UserResponse)
-    assert result.telegram_id == user.telegram_id
-    assert result.name == user.name
-    assert result.social_points == user.social_points
-    assert result.free_requests_remaining == user.free_requests_remaining
-    assert result.is_active_in_search == user.is_active_in_search
+    assert result.model_dump(exclude={"created_at", "updated_at"}) == {k: v for k, v in user.model_dump().items() if k not in ["created_at", "updated_at"]}
     
     # Verify the correct chain of calls was made
     mock_db_client.table.assert_called_once_with("users")
@@ -147,11 +135,7 @@ async def test_update_user_success(user_repo, mock_db_client):
     
     # Assert
     assert result is not None
-    assert isinstance(result, UserResponse)
-    assert result.telegram_id == user.telegram_id
-    assert result.name == user.name
-    assert result.role == user.role
-    assert result.skills == user.skills
+    assert result.model_dump(exclude={"created_at", "updated_at"}) == {k: v for k, v in user.model_dump().items() if k not in ["created_at", "updated_at"]}
     
     # Verify the correct chain of calls was made
     mock_db_client.table.assert_called_once_with("users")
