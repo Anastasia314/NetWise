@@ -62,11 +62,11 @@
         *   `- [x]` `UserProfileUpdate` (for profile editing).
         *   `- [x]` `UserResponse` (for API responses).
     *   `- [x]` `app/models/common_models.py`: Basic enums if any are tied to user (e.g., `SubscriptionTier` enum, though nullable for now).
-*   `- [ ]` **Backend: User Repository (`app/db/user_repo.py`)**
-    *   `- [ ]` Implement `create_user(client, user_data)`.
-    *   `- [ ]` Implement `get_user_by_telegram_id(client, telegram_id)`.
-    *   `- [ ]` Implement `update_user_profile(client, telegram_id, profile_data)`.
-    *   `- [ ]` Unit tests for repository functions (mocking Supabase client).
+*   `- [x]` **Backend: User Repository (`app/db/user_repo.py`)**
+    *   `- [x]` Implement `create_user(client, user_data)`.
+    *   `- [x]` Implement `get_user_by_telegram_id(client, telegram_id)`.
+    *   `- [x]` Implement `update_user_profile(client, telegram_id, profile_data)`.
+    *   `- [x]` Unit tests for repository functions (mocking Supabase client).
 *   `- [ ]` **Backend: User Service (`app/services/user_service.py`)**
     *   `- [ ]` Implement `create_or_get_user(telegram_id, name, username)`: Logic to handle first interaction.
     *   `- [ ]` Implement `update_user_profile_service(telegram_id, profile_data)`: Business logic, validation.

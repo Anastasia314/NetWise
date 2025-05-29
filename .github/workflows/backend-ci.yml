@@ -37,6 +37,4 @@ jobs:
     
     - name: Run tests
       run: |
-        cd backend
-        # TODO: Add test commands
-        echo "Tests will be implemented in the future" 
+        pytest -v 
