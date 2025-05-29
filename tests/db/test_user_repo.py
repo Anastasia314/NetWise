@@ -100,25 +100,23 @@ def test_get_user_by_telegram_id_user_not_found(mock_db_client):
 def test_create_user_success(mock_db_client):
     """Test create_user when user is successfully created."""
     # Arrange
-    user_in = UserCreate(
-        telegram_id=123456789,
-        name="New User",
-        role="Developer",
-        industry="Technology",
-        skills=["Python", "FastAPI"],
-        goals=["Learn AI"],
-        interests=["Web Development"]
-    )
+    telegram_id = 123456789
+    name = "New User"
+    role = "Developer"
+    industry = "Technology"
+    skills = ["Python", "FastAPI"]
+    goals = ["Learn AI"]
+    interests = ["Web Development"]
     
     # Mock the response data that would be returned from Supabase
     mock_response_data = {
-        "telegram_id": user_in.telegram_id,
-        "name": user_in.name,
-        "role": user_in.role,
-        "industry": user_in.industry,
-        "skills": user_in.skills,
-        "goals": user_in.goals,
-        "interests": user_in.interests,
+        "telegram_id": telegram_id,
+        "name": name,
+        "role": role,
+        "industry": industry,
+        "skills": skills,
+        "goals": goals,
+        "interests": interests,
         "social_points": 0,
         "free_requests_remaining": 5,
         "subscription_tier": None,
@@ -137,18 +135,13 @@ def test_create_user_success(mock_db_client):
     mock_insert.execute.return_value.data = [mock_response_data]
     
     # Act
-    result = create_user(mock_db_client, user_in)
+    result = create_user(mock_db_client, telegram_id, name)
     
     # Assert
     assert result is not None
     assert isinstance(result, UserResponse)
-    assert result.telegram_id == user_in.telegram_id
-    assert result.name == user_in.name
-    assert result.role == user_in.role
-    assert result.industry == user_in.industry
-    assert result.skills == user_in.skills
-    assert result.goals == user_in.goals
-    assert result.interests == user_in.interests
+    assert result.telegram_id == telegram_id
+    assert result.name == name
     assert result.social_points == 0
     assert result.free_requests_remaining == 5
     assert result.is_active_in_search is True
@@ -162,15 +155,8 @@ def test_create_user_success(mock_db_client):
 def test_create_user_duplicate_telegram_id(mock_db_client):
     """Test create_user when attempting to create a user with a duplicate telegram_id."""
     # Arrange
-    user_in = UserCreate(
-        telegram_id=123456789,
-        name="New User",
-        role="Developer",
-        industry="Technology",
-        skills=["Python", "FastAPI"],
-        goals=["Learn AI"],
-        interests=["Web Development"]
-    )
+    telegram_id = 123456789
+    name = "New User"
     
     # Mock the Supabase client to raise an APIError for duplicate key violation
     mock_table = Mock()
@@ -184,7 +170,7 @@ def test_create_user_duplicate_telegram_id(mock_db_client):
     
     # Act & Assert
     with pytest.raises(APIError) as exc_info:
-        create_user(mock_db_client, user_in)
+        create_user(mock_db_client, telegram_id, name)
     
     # Verify the error details
     assert "duplicate key value" in str(exc_info.value)
@@ -235,7 +221,7 @@ def test_update_user_profile_success(mock_db_client):
     mock_eq.execute.return_value.data = [mock_response_data]
     
     # Act
-    result = update_user_profile(mock_db_client, telegram_id, profile_data)
+    result = update_user_profile(mock_db_client, telegram_id, profile_data.model_dump(exclude_unset=True))
     
     # Assert
     assert result is not None
@@ -279,7 +265,7 @@ def test_update_user_profile_user_not_found(mock_db_client):
     mock_eq.execute.return_value.data = []  # Empty list indicates no user found
     
     # Act
-    result = update_user_profile(mock_db_client, telegram_id, profile_data)
+    result = update_user_profile(mock_db_client, telegram_id, profile_data.model_dump(exclude_unset=True))
     
     # Assert
     assert result is None
