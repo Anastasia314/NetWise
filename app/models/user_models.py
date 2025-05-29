@@ -103,7 +103,7 @@ class UserInDBBase(UserBase):
     class Config:
         """Pydantic model configuration."""
         
-        orm_mode = True
+        from_attributes = True
         json_schema_extra = {
             "example": {
                 "telegram_id": 123456789,

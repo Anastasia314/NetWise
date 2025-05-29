@@ -1,7 +1,16 @@
+"""
+Main FastAPI application module.
+
+This module creates and configures the FastAPI application instance,
+including registering routers and middleware.
+"""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db.supabase_client import get_supabase_client
+
+from app.api.users import router as user_router
 
 settings = get_settings()
 
@@ -20,6 +29,9 @@ app.add_middleware(
     allow_methods=settings.CORS_METHODS,
     allow_headers=settings.CORS_HEADERS,
 )
+
+# Register routers
+app.include_router(user_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
