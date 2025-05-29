@@ -56,12 +56,12 @@
 *   `- [x]` **Database Schema Expansion (`users` table)**
     *   `- [x]` Add all fields from ADD 4.3 to `users` table in Supabase: `name`, `role`, `industry`, `skills`, `goals`, `interests`, `social_points`, `free_requests_remaining`, `subscription_tier`, `last_active_at`, `is_active_in_search`, etc.
     *   `- [x]` Define appropriate data types, defaults, and constraints.
-*   `- [ ]` **Backend: User Models (Pydantic)**
-    *   `- [ ]` `app/models/user_models.py`:
-        *   `- [ ]` `UserBase`, `UserCreate` (for registration/first interaction).
-        *   `- [ ]` `UserProfileUpdate` (for profile editing).
-        *   `- [ ]` `UserResponse` (for API responses).
-    *   `- [ ]` `app/models/common_models.py`: Basic enums if any are tied to user (e.g., `SubscriptionTier` enum, though nullable for now).
+*   `- [x]` **Backend: User Models (Pydantic)**
+    *   `- [x]` `app/models/user_models.py`:
+        *   `- [x]` `UserBase`, `UserCreate` (for registration/first interaction).
+        *   `- [x]` `UserProfileUpdate` (for profile editing).
+        *   `- [x]` `UserResponse` (for API responses).
+    *   `- [x]` `app/models/common_models.py`: Basic enums if any are tied to user (e.g., `SubscriptionTier` enum, though nullable for now).
 *   `- [ ]` **Backend: User Repository (`app/db/user_repo.py`)**
     *   `- [ ]` Implement `create_user(client, user_data)`.
     *   `- [ ]` Implement `get_user_by_telegram_id(client, telegram_id)`.
