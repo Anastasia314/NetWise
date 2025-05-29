@@ -14,7 +14,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.models.common_models import SubscriptionTierEnum
+from models.common_models import SubscriptionTierEnum
 
 
 class UserBase(BaseModel):
