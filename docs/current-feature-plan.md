@@ -1,50 +1,69 @@
 ## `current-feature-plan.md`
 
-**Title:** Backend: User Service Implementation
+**Title:** Backend: User API Endpoints Implementation
 
 **Feature Description:**
-This feature involves creating the User Service module (`user_service.py`), which will encapsulate the business logic for user management. It will interact with the User Repository to perform database operations and will be called by the API endpoints. Key functionalities include handling a user's first interaction (creating or retrieving their profile), updating user profiles, and fetching user profiles. Unit tests will be written to mock the repository layer, ensuring the service logic is tested in isolation.
+This feature involves creating the API endpoints for user management using FastAPI. These endpoints will allow clients (initially the Telegram bot) to onboard new users, retrieve user profiles, and update user profiles. It also includes setting up a basic dependency for extracting user identity (Telegram ID) from requests. Integration tests will be written to verify the functionality of these endpoints.
 
 **Tasks:**
-*   `- [x] SERVICE: Create `app/services/` directory if it doesn't exist.`
-*   `- [x] SERVICE: Create `app/services/__init__.py` and `app/services/user_service.py` files.`
-*   `- [x] SERVICE: Import necessary Pydantic models (`UserCreate`, `UserProfileUpdate`, `UserResponse`) and repository functions (`user_repo`) into `user_service.py`. Import Supabase client type hint.`
-*   `- [x] SERVICE: Implement `get_user_profile_service(db_client: Client, telegram_id: int) -> Optional[UserResponse]` in `user_service.py`. This function will call `user_repo.get_user_by_telegram_id`.`
-*   `- [x] TEST: Create `tests/services/` directory and `tests/services/test_user_service.py` file.`
-*   `- [x] TEST: Write unit test for `get_user_profile_service` (user found), mocking `user_repo.get_user_by_telegram_id` to return a user, and assert the service returns the same user.`
-*   `- [x] TEST: Write unit test for `get_user_profile_service` (user not found), mocking `user_repo.get_user_by_telegram_id` to return `None`, and assert the service returns `None` (or raises an appropriate `HTTPException` like `404 Not Found`).`
-*   `- [x] SERVICE: Implement `create_or_get_user_service(db_client: Client, telegram_id: int, name: Optional[str], username: Optional[str]) -> UserResponse` in `user_service.py`. Logic:
-    *   Attempt to fetch user by `telegram_id` using `user_repo.get_user_by_telegram_id`.
-    *   If user exists, return the user.
-    *   If user does not exist, create a `UserCreate` object (using `telegram_id` and `name` if provided) and call `user_repo.create_user`. Return the new user.`
-*   `- [x] TEST: Write unit test for `create_or_get_user_service` (user exists), mocking `user_repo.get_user_by_telegram_id` to return an existing user and `user_repo.create_user` not to be called. Assert the existing user is returned.`
-*   `- [x] TEST: Write unit test for `create_or_get_user_service` (user does not exist), mocking `user_repo.get_user_by_telegram_id` to return `None`, and `user_repo.create_user` to return a new user. Assert the new user is returned and `create_user` was called with correct parameters.`
-*   `- [x] SERVICE: Implement `update_user_profile_service(db_client: Client, telegram_id: int, profile_data_in: UserProfileUpdate) -> UserResponse` in `user_service.py`.
-    *   Call `user_repo.update_user_profile`.
-    *   If update successful (user found and updated), return the updated user.
-    *   If user not found (repository returns `None`), raise an `HTTPException(status_code=404, detail="User not found")`.`
-*   `- [x] TEST: Write unit test for `update_user_profile_service` (successful update), mocking `user_repo.update_user_profile` to return an updated user. Assert the updated user is returned.`
-*   `- [x] TEST: Write unit test for `update_user_profile_service` (user not found), mocking `user_repo.update_user_profile` to return `None`. Assert `HTTPException` with status 404 is raised.`
-*   `- [x] SERVICE: Add business logic/validation to `update_user_profile_service` if any specific rules apply before calling the repository (e.g., validating `skills` list length, though Pydantic handles basic type validation). For MVP, this might be minimal beyond what Pydantic provides.`
+*   `- [ ] API: Create `app/api/` directory if it doesn't exist.`
+*   `- [ ] API: Create `app/api/__init__.py` and `app/api/users.py` files.`
+*   `- [ ] API: In `app/api/users.py`, create an `APIRouter` instance for user-related endpoints.`
+*   `- [ ] API: Import necessary Pydantic models (`UserCreate`, `UserProfileUpdate`, `UserResponse`), service functions (`user_service`), Supabase client, and FastAPI components (`APIRouter`, `Depends`, `HTTPException`, `Header`).`
+*   `- [ ] API: Create `app/api/deps.py` for API dependencies.`
+*   `- [ ] API: Implement `get_supabase_client()` dependency in `app/api/deps.py` to provide a Supabase client instance to endpoint functions. (This might use a global client or initialize one per request depending on `supabase-py` best practices).`
+*   `- [ ] API: Implement `get_current_telegram_id(x_telegram_id: int = Header(...))` dependency in `app/api/deps.py` to extract `telegram_id` from a custom request header `X-Telegram-Id`.`
+*   `- [ ] API: Implement `POST /users/onboard` endpoint in `app/api/users.py`.
+    *   It should accept `telegram_id: int`, `name: Optional[str] = None`, `username: Optional[str] = None` in the request body (or derive `telegram_id` from header and other details from body via a `UserOnboardRequest` Pydantic model).
+    *   Call `user_service.create_or_get_user_service`.
+    *   Return `UserResponse` with status code 200 (if user exists) or 201 (if user created).`
+*   `- [ ] TEST: Create `tests/api/` directory and `tests/api/test_user_api.py` file.`
+*   `- [ ] TEST: Write integration test for `POST /users/onboard` (new user creation), mocking service layer, and asserting correct response code and body.`
+*   `- [ ] TEST: Write integration test for `POST /users/onboard` (existing user retrieval), mocking service layer, and asserting correct response code and body.`
+*   `- [ ] API: Implement `GET /users/{path_telegram_id}/profile` endpoint in `app/api/users.py`.
+    *   Accept `path_telegram_id: int` as a path parameter.
+    *   (Security check: Ensure `path_telegram_id` matches `current_telegram_id` from `get_current_telegram_id` dependency, or allow admins to fetch any). For MVP, assume user can only fetch their own.
+    *   Call `user_service.get_user_profile_service`.
+    *   Return `UserResponse` or 404 if not found.`
+*   `- [ ] TEST: Write integration test for `GET /users/{telegram_id}/profile` (user found), mocking service layer, and asserting correct response.`
+*   `- [ ] TEST: Write integration test for `GET /users/{telegram_id}/profile` (user not found), mocking service layer, and asserting 404 response.`
+*   `- [ ] TEST: Write integration test for `GET /users/{telegram_id}/profile` (unauthorized access if `path_telegram_id` doesn't match header `X-Telegram-Id`, if security check is implemented), asserting 403 response.`
+*   `- [ ] API: Implement `PUT /users/{path_telegram_id}/profile` endpoint in `app/api/users.py`.
+    *   Accept `path_telegram_id: int` as a path parameter and `profile_update_data: UserProfileUpdate` in the request body.
+    *   Security check: Ensure `path_telegram_id` matches `current_telegram_id` from `get_current_telegram_id` dependency.
+    *   Call `user_service.update_user_profile_service`.
+    *   Return updated `UserResponse` or 404 if not found.`
+*   `- [ ] TEST: Write integration test for `PUT /users/{telegram_id}/profile` (successful update), mocking service layer, and asserting correct response.`
+*   `- [ ] TEST: Write integration test for `PUT /users/{telegram_id}/profile` (user not found), mocking service layer, and asserting 404 response.`
+*   `- [ ] TEST: Write integration test for `PUT /users/{telegram_id}/profile` (unauthorized access), mocking service layer, and asserting 403 response.`
+*   `- [ ] API: Register the user `APIRouter` in the main FastAPI app (`app/main.py`) with a prefix like `/api/v1`.`
 
 **Files Involved:**
-*   `app/services/user_service.py`
-*   `app/services/__init__.py`
-*   `tests/services/test_user_service.py`
-*   `tests/services/__init__.py` (if `tests` is a package)
-*   `app/db/user_repo.py` (for imports)
+*   `app/api/users.py`
+*   `app/api/deps.py`
+*   `app/api/__init__.py`
+*   `app/main.py` (to include the router)
+*   `tests/api/test_user_api.py`
+*   `tests/api/__init__.py`
+*   `app/services/user_service.py` (for imports)
 *   `app/models/user_models.py` (for imports)
-*   `fastapi.HTTPException` (for imports)
+*   `app/db/supabase_client.py` (if `get_supabase_client` is defined there)
 
 **External Dependencies:**
-*   `fastapi` (for `HTTPException`)
+*   `fastapi` (for `APIRouter`, `Depends`, `HTTPException`, `Header`, `Path`, `Body`)
+*   `uvicorn` (for running the FastAPI app during testing)
+*   `httpx` (for making requests to the API in integration tests)
 *   `pytest` (for running tests)
-*   `pytest-mock` or `unittest.mock` (for mocking the repository functions)
+*   `pytest-mock` or `unittest.mock` (for mocking the service layer in tests)
 *   `pydantic` (for user models)
-*   `supabase-py` (for `supabase.Client` type hinting)
+*   `supabase-py` (for `supabase.Client` type hinting and actual client if used in `deps.py`)
 
 **Notes:**
-*   Service layer functions will also take `db_client: Client` as an argument to pass down to the repository layer. This maintains consistency and allows for session management if needed later.
-*   The service layer is where business logic, more complex validations (beyond Pydantic's scope), and orchestrations of multiple repository calls would typically reside.
-*   Error Handling: Unlike the repository which might return `None`, the service layer often translates these into `HTTPException`s suitable for the API layer to return to the client.
-*   The `username` parameter in `create_or_get_user_service` is included as per the task description, though its direct use in `UserCreate` might depend on whether `username` is a distinct field in the `users` table or if `name` is intended to store it. For now, `name`
+*   **Authentication/Authorization:** For MVP, a simple `X-Telegram-Id` header is used. In a more robust system, proper authentication (e.g., JWT tokens) would be implemented. The security check (`path_telegram_id` matching header `X-Telegram-Id`) is a basic authorization measure for MVP.
+*   **Onboarding Endpoint Design:** The `POST /users/onboard` endpoint can either take all info in the body (requiring a new Pydantic model like `UserOnboardRequest`) or use a combination of path/header for `telegram_id` and body for other optional fields. The task list leans towards a body that might include `telegram_id` initially, or adjust to using the header `telegram_id` as the primary identifier. For consistency, using the `X-Telegram-Id` header for identification and a Pydantic model for optional onboarding data (`name`, `username`) in the body might be cleaner. The `create_or_get_user_service` would then primarily use the header `telegram_id`.
+*   **Supabase Client Dependency:** The `get_supabase_client` dependency will manage how the Supabase client is provided to repository/service layers when called from an API endpoint. This might involve initializing the client once globally or per-request based on `supabase-py` and FastAPI best practices for connection management.
+*   **Integration Tests:** These tests will use `TestClient` from FastAPI or `httpx` to make actual HTTP requests to the endpoints, mocking the service layer to isolate API logic testing.
+*   **API Versioning:** The router is prefixed with `/api/v1` to allow for future API versions.
+*   The `username` field in the onboarding request is passed to the service, but its persistence depends on whether it's a distinct DB field.
+
+---
