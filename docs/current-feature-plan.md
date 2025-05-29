@@ -1,51 +1,38 @@
 ## `current-feature-plan.md`
 
-**Title:** Database Schema Expansion (`users` table)
+**Title:** Backend: User Pydantic Models
 
 **Feature Description:**
-This feature involves expanding the `users` table in the Supabase PostgreSQL database to include all necessary fields for comprehensive user profiles, tracking user activity related to social points and request economy, managing subscription details, and enabling AI matching capabilities. This aligns with the schema defined in the Architectural Design Document (ADD section 4.3) for the `users` table.
+This feature focuses on defining the Pydantic models for user-related data structures in the FastAPI backend. These models will be used for request and response validation, data serialization/deserialization, and ensuring type safety for user data throughout the application. This includes models for basic user information, user creation, profile updates, and API responses, as well as any common enumerations related to user attributes.
 
 **Tasks:**
-*   `- [x] DB: Add `role` (TEXT, NULLABLE) and `industry` (TEXT, NULLABLE) columns to the `users` table.`
-*   `- [x] DB: Add `skills` (TEXT[], NOT NULL, DEFAULT '{}'), `goals` (TEXT[], NOT NULL, DEFAULT '{}'), `interests` (TEXT[], NOT NULL, DEFAULT '{}') columns to the `users` table.`
-*   `- [x] DB: Add `social_points` (INTEGER, NOT NULL, DEFAULT 0) column to the `users` table.`
-*   `- [x] DB: Add `free_requests_remaining` (INTEGER, NOT NULL, DEFAULT 5) column to the `users` table.`
-*   `- [x] DB: Add `subscription_tier` (TEXT, NULLABLE) and `subscription_expires_at` (TIMESTAMPTZ, NULLABLE) columns to the `users` table.`
-*   `- [x] DB: Add `last_active_at` (TIMESTAMPTZ, NULLABLE) and `is_active_in_search` (BOOLEAN, NOT NULL, DEFAULT TRUE) columns to the `users` table.`
-*   `- [x] DB: Enable `pg_vector` extension in Supabase if not already enabled.`
-*   `- [x] DB: Add `profile_embedding` (vector(1536), NULLABLE) column to the `users` table (assuming OpenAI `text-embedding-ada-002` dimensions).`
-*   `- [x] DB: Verify `name` (TEXT) column exists (from Phase 0) and is suitable (e.g., NULLABLE).`
-*   `- [x] DB: Ensure `updated_at` (TIMESTAMPTZ) column is configured to automatically update on row modification (e.g., using a trigger).`
+*   `- [ ] MODEL: Create `app/models/` directory if it doesn't exist.`
+*   `- [ ] MODEL: Create `app/models/user_models.py` file.`
+*   `- [ ] MODEL: Define `UserBase(BaseModel)` in `user_models.py` with common user fields: `telegram_id: int`, `name: Optional[str] = None`, `role: Optional[str] = None`, `industry: Optional[str] = None`, `skills: Optional[List[str]] = Field(default_factory=list)`, `goals: Optional[List[str]] = Field(default_factory=list)`, `interests: Optional[List[str]] = Field(default_factory=list)`.`
+*   `- [ ] MODEL: Define `UserCreate(UserBase)` in `user_models.py` for user registration/initial onboarding, ensuring `telegram_id` is mandatory, and `name` might be derived from Telegram user info.`
+*   `- [ ] MODEL: Define `UserProfileUpdate(UserBase)` in `user_models.py` for profile editing; all fields should be optional to allow partial updates. Exclude `telegram_id` as it's not updatable.`
+*   `- [ ] MODEL: Define `UserInDBBase(UserBase)` in `user_models.py` to include database-only fields: `id: int` (or `telegram_id` as primary key if directly used), `social_points: int`, `free_requests_remaining: int`, `subscription_tier: Optional[str] = None`, `subscription_expires_at: Optional[datetime] = None`, `last_active_at: Optional[datetime] = None`, `is_active_in_search: bool`, `created_at: datetime`, `updated_at: Optional[datetime] = None`. Add `Config` class with `orm_mode = True`.`
+*   `- [ ] MODEL: Define `UserResponse(UserInDBBase)` in `user_models.py` for API responses, inheriting from `UserInDBBase`. This model will be used to return user data from the API.`
+*   `- [ ] MODEL: Create `app/models/common_models.py` file (if not existing).`
+*   `- [ ] MODEL: Define `SubscriptionTierEnum(str, Enum)` in `common_models.py` with potential initial values (e.g., `TIER_500 = "tier_500"`, `TIER_1000 = "tier_1000"`) or leave empty for now, as `subscription_tier` in `UserInDBBase` is `Optional[str]`.`
+*   `- [ ] MODEL: Import `datetime`, `Optional`, `List` from `typing`, `Enum` from `enum`, and `BaseModel`, `Field` from `pydantic` where needed.`
 
 **Files Involved:**
-*   SQL migration script(s) (e.g., `supabase/migrations/<timestamp>_expand_users_table.sql`)
-*   Potentially Supabase dashboard UI for enabling extensions or quick modifications (changes should be captured in migrations).
+*   `app/models/user_models.py`
+*   `app/models/common_models.py`
+*   `app/models/__init__.py` (if used for easier imports)
 
 **External Dependencies:**
-*   Supabase (PostgreSQL)
-*   `pg_vector` PostgreSQL extension (for the `profile_embedding` field)
+*   `pydantic` (already listed as a core dependency)
+*   Standard Python `typing` module (`Optional`, `List`)
+*   Standard Python `datetime` module
+*   Standard Python `enum` module
 
 **Notes:**
-*   The `telegram_id` (PK, BigInt, unique) and `created_at` (TIMESTAMPTZ, default now()) columns are assumed to have been created correctly during Phase 0.
-*   The `name` column was likely created in Phase 0; this task includes verifying its existence and type.
-*   The `profile_embedding` field is for future AI matching capabilities. The vector dimension (e.g., 1536) should match the chosen embedding model.
-*   Default values for `social_points` and `free_requests_remaining` are based on PRD.
-*   `TIMESTAMPTZ` (timestamp with time zone) is generally preferred for timestamp fields.
-*   An `updated_at` trigger is a common pattern:
-    ```sql
-    CREATE OR REPLACE FUNCTION public.handle_updated_at()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = NOW();
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-
-    CREATE TRIGGER on_users_updated
-    BEFORE UPDATE ON public.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_updated_at();
-    ```
-    This trigger would need to be created if not already present from Supabase defaults for the `users` table.
+*   The `UserInDBBase` model is useful for ORM integration (e.g., with Supabase responses if they are mapped to Pydantic models). `orm_mode = True` (or `from_attributes = True` in Pydantic V2) allows Pydantic to read data from ORM objects.
+*   Field optionality (`Optional[...]`) and default values (`Field(default_factory=list)`) are crucial for flexibility, especially in update models.
+*   `telegram_id` is the primary identifier coming from Telegram and will likely serve as the primary key or a unique indexed field in the `users` table.
+*   The `SubscriptionTierEnum` is defined but noted as optional for now in the user model itself, aligning with the PRD's flexible subscription structure.
+*   `profile_embedding` is not included in these user-facing models for now, as it's an internal field for matching. It could be added to `UserInDBBase` if needed for internal processing but generally not exposed in `UserResponse` unless specifically required. The task list assumes it's not directly part of these base user interaction models.
 
 ---
