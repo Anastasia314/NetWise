@@ -1,44 +1,53 @@
 ## `current-feature-plan.md`
 
-**Title:** Backend: User Repository Implementation
+**Title:** Backend: User Service Implementation
 
 **Feature Description:**
-This feature involves creating the User Repository module (`user_repo.py`) responsible for all direct database interactions related to the `users` table. It will include functions for creating, retrieving, and updating user records in Supabase. Each function will be accompanied by unit tests that mock the Supabase client to ensure an isolated and reliable testing environment. The repository functions will utilize the Pydantic models defined in the previous step for data input and output.
+This feature involves creating the User Service module (`user_service.py`), which will encapsulate the business logic for user management. It will interact with the User Repository to perform database operations and will be called by the API endpoints. Key functionalities include handling a user's first interaction (creating or retrieving their profile), updating user profiles, and fetching user profiles. Unit tests will be written to mock the repository layer, ensuring the service logic is tested in isolation.
 
 **Tasks:**
-*   `- [x] REPO: Create `app/db/` directory if it doesn't exist.`
-*   `- [x] REPO: Create `app/db/__init__.py` and `app/db/user_repo.py` files.`
-*   `- [x] REPO: Import necessary Pydantic models (`UserCreate`, `UserProfileUpdate`, `UserResponse`) and Supabase client type hint into `user_repo.py`.`
-*   `- [x] REPO: Implement `get_user_by_telegram_id(db_client: Client, telegram_id: int) -> Optional[UserResponse]` function in `user_repo.py` to fetch a user by their Telegram ID from the Supabase `users` table.`
-*   `- [x] TEST: Create `tests/db/` directory and `tests/db/test_user_repo.py` file.`
-*   `- [x] TEST: Write unit test for `get_user_by_telegram_id` (user found scenario), mocking Supabase client response and asserting correct `UserResponse` object is returned.`
-*   `- [x] TEST: Write unit test for `get_user_by_telegram_id` (user not found scenario), mocking Supabase client response and asserting `None` is returned.`
-*   `- [x] REPO: Implement `create_user(db_client: Client, user_in: UserCreate) -> UserResponse` function in `user_repo.py` to insert a new user into the Supabase `users` table.`
-*   `- [x] TEST: Write unit test for `create_user` (successful creation), mocking Supabase client's insert operation and asserting correct `UserResponse` object is returned.`
-*   `- [x] TEST: Write unit test for `create_user` (handling potential database error, e.g., duplicate `telegram_id`), mocking Supabase client to raise an exception and asserting the repository function handles or re-raises it appropriately.`
-*   `- [x] REPO: Implement `update_user_profile(db_client: Client, telegram_id: int, profile_data: UserProfileUpdate) -> Optional[UserResponse]` function in `user_repo.py` to update an existing user's profile in the Supabase `users` table. Ensure only provided fields are updated (e.g., using `model_dump(exclude_unset=True)`).`
-*   `- [x] TEST: Write unit test for `update_user_profile` (successful update of a subset of fields), mocking Supabase client's update operation and asserting correct `UserResponse` object is returned with updated fields.`
-*   `- [x] TEST: Write unit test for `update_user_profile` (user not found scenario), mocking Supabase client's update operation (e.g., if it returns no updated rows or an empty list) and asserting `None` is returned.`
+*   `- [ ] SERVICE: Create `app/services/` directory if it doesn't exist.`
+*   `- [ ] SERVICE: Create `app/services/__init__.py` and `app/services/user_service.py` files.`
+*   `- [ ] SERVICE: Import necessary Pydantic models (`UserCreate`, `UserProfileUpdate`, `UserResponse`) and repository functions (`user_repo`) into `user_service.py`. Import Supabase client type hint.`
+*   `- [ ] SERVICE: Implement `get_user_profile_service(db_client: Client, telegram_id: int) -> Optional[UserResponse]` in `user_service.py`. This function will call `user_repo.get_user_by_telegram_id`.`
+*   `- [ ] TEST: Create `tests/services/` directory and `tests/services/test_user_service.py` file.`
+*   `- [ ] TEST: Write unit test for `get_user_profile_service` (user found), mocking `user_repo.get_user_by_telegram_id` to return a user, and assert the service returns the same user.`
+*   `- [ ] TEST: Write unit test for `get_user_profile_service` (user not found), mocking `user_repo.get_user_by_telegram_id` to return `None`, and assert the service returns `None` (or raises an appropriate `HTTPException` like `404 Not Found`).`
+*   `- [ ] SERVICE: Implement `create_or_get_user_service(db_client: Client, telegram_id: int, name: Optional[str], username: Optional[str]) -> UserResponse` in `user_service.py`. Logic:
+    *   Attempt to fetch user by `telegram_id` using `user_repo.get_user_by_telegram_id`.
+    *   If user exists, return the user.
+    *   If user does not exist, create a `UserCreate` object (using `telegram_id` and `name` if provided) and call `user_repo.create_user`. Return the new user.`
+*   `- [ ] TEST: Write unit test for `create_or_get_user_service` (user exists), mocking `user_repo.get_user_by_telegram_id` to return an existing user and `user_repo.create_user` not to be called. Assert the existing user is returned.`
+*   `- [ ] TEST: Write unit test for `create_or_get_user_service` (user does not exist), mocking `user_repo.get_user_by_telegram_id` to return `None`, and `user_repo.create_user` to return a new user. Assert the new user is returned and `create_user` was called with correct parameters.`
+*   `- [ ] SERVICE: Implement `update_user_profile_service(db_client: Client, telegram_id: int, profile_data_in: UserProfileUpdate) -> UserResponse` in `user_service.py`.
+    *   Call `user_repo.update_user_profile`.
+    *   If update successful (user found and updated), return the updated user.
+    *   If user not found (repository returns `None`), raise an `HTTPException(status_code=404, detail="User not found")`.`
+*   `- [ ] TEST: Write unit test for `update_user_profile_service` (successful update), mocking `user_repo.update_user_profile` to return an updated user. Assert the updated user is returned.`
+*   `- [ ] TEST: Write unit test for `update_user_profile_service` (user not found), mocking `user_repo.update_user_profile` to return `None`. Assert `HTTPException` with status 404 is raised.`
+*   `- [ ] SERVICE: Add business logic/validation to `update_user_profile_service` if any specific rules apply before calling the repository (e.g., validating `skills` list length, though Pydantic handles basic type validation). For MVP, this might be minimal beyond what Pydantic provides.`
 
 **Files Involved:**
-*   `app/db/user_repo.py`
-*   `app/db/__init__.py`
-*   `tests/db/test_user_repo.py`
-*   `tests/db/__init__.py` (if `tests` is a package)
+*   `app/services/user_service.py`
+*   `app/services/__init__.py`
+*   `tests/services/test_user_service.py`
+*   `tests/services/__init__.py` (if `tests` is a package)
+*   `app/db/user_repo.py` (for imports)
 *   `app/models/user_models.py` (for imports)
-*   `app/db/supabase_client.py` (for importing Supabase client type, if defined there, or directly `supabase.Client`)
+*   `fastapi.HTTPException` (for imports)
 
 **External Dependencies:**
-*   `supabase-py` (for `supabase.Client` type hinting and mocked interactions)
+*   `fastapi` (for `HTTPException`)
 *   `pytest` (for running tests)
-*   `pytest-mock` or `unittest.mock` (for mocking the Supabase client)
-*   `pydantic` (for `UserCreate`, `UserProfileUpdate`, `UserResponse` models)
+*   `pytest-mock` or `unittest.mock` (for mocking the repository functions)
+*   `pydantic` (for user models)
+*   `supabase-py` (for `supabase.Client` type hinting)
 
 **Notes:**
-*   The Supabase client instance (`db_client: Client`) will be passed as an argument to each repository function. This promotes dependency injection and testability.
-*   Repository functions should generally return Pydantic models (e.g., `UserResponse`) to provide a consistent data structure to the service layer.
-*   `model_dump(exclude_unset=True)` on Pydantic models is crucial for update operations to ensure only fields explicitly set in the `UserProfileUpdate` model are sent to the database, allowing for partial updates.
-*   Error handling: The repository layer can either re-raise database exceptions or handle them and return `None` / specific error indicators. For this stage, re-raising specific custom exceptions or letting Supabase client exceptions propagate for the service layer to handle is a common approach. The tasks assume returning `Optional[UserResponse]` for operations that might not find a user or fail gracefully at this level.
-*   The test for `create_user` handling a DB error (like unique constraint violation) ensures the repository doesn't crash unexpectedly or mask the error. The exact behavior (re-raise, custom exception) should be decided and tested.
+*   Service layer functions will also take `db_client: Client` as an argument to pass down to the repository layer. This maintains consistency and allows for session management if needed later.
+*   The service layer is where business logic, more complex validations (beyond Pydantic's scope), and orchestrations of multiple repository calls would typically reside.
+*   Error Handling: Unlike the repository which might return `None`, the service layer often translates these into `HTTPException`s suitable for the API layer to return to the client.
+*   The `username` parameter in `create_or_get_user_service` is included as per the task description, though its direct use in `UserCreate` might depend on whether `username` is a distinct field in the `users` table or if `name` is intended to store it. For now, `name` is used in `UserCreate`. If `username` is a separate DB field, `UserCreate` and `user_repo.create_user` would need to accommodate it.
+*   The initial implementation of `update_user_profile_service` might directly call the repository. More complex business rules (e.g., checking if a certain skill is valid based on a predefined list) could be added later.
 
 ---
