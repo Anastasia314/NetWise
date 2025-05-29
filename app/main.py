@@ -8,9 +8,9 @@ including registering routers and middleware.
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import get_settings
-from app.db.supabase_client import get_supabase_client
-from app.api.users import router as user_router
+from core.config import get_settings
+from db.supabase_client import get_supabase_client
+from api.users import router as user_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
