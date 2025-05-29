@@ -3,9 +3,12 @@ Unit tests for the user service module.
 """
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 from fastapi import HTTPException
+
+from models.user_models import UserCreate, UserProfileUpdate, UserResponse
+from services.user_service import UserService
 # from app.services.user_service import (
 #     get_user_profile_service,
 #     create_or_get_user_service,
@@ -15,84 +18,191 @@ from fastapi import HTTPException
 
 @pytest.fixture
 def mock_user_repo():
-    return Mock()
+    return AsyncMock()
 
-def test_get_user_profile_service_user_found(mock_user_repo):
-    user_id = 123
-    mock_profile = Mock()
-    mock_user_repo.get_user_profile.return_value = mock_profile
-    result = mock_user_repo.get_user_profile(user_id)
-    assert result == mock_profile
-    mock_user_repo.get_user_profile.assert_called_once_with(user_id)
+@pytest.fixture
+def user_service(mock_user_repo):
+    return UserService(mock_user_repo)
 
-def test_get_user_profile_service_user_not_found(mock_user_repo):
-    user_id = 123
-    mock_user_repo.get_user_profile.return_value = None
-    with pytest.raises(HTTPException) as exc_info:
-        raise HTTPException(status_code=404, detail="User not found")
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "User not found"
+@pytest.mark.asyncio
+async def test_create_or_get_user_existing(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    user_data = UserCreate(
+        name="Test User",
+        role="Developer",
+        industry="Technology",
+        skills=["Python", "FastAPI"],
+        goals=["Learn AI"],
+        interests=["Web Development"]
+    )
+    existing_user = UserResponse(
+        telegram_id=telegram_id,
+        name="Test User",
+        role="Developer",
+        industry="Technology",
+        skills=["Python", "FastAPI"],
+        goals=["Learn AI"],
+        interests=["Web Development"],
+        social_points=100,
+        free_requests_remaining=5,
+        subscription_tier="free",
+        is_active_in_search=True,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    mock_user_repo.get_user_by_telegram_id.return_value = existing_user
 
-def test_create_or_get_user_service_user_exists(mock_user_repo):
-    telegram_id = 123456789
-    username = "test_user"
-    first_name = "Test"
-    last_name = "User"
-    mock_profile = Mock()
-    mock_user_repo.get_user_by_telegram_id.return_value = mock_profile
-    result = mock_user_repo.get_user_by_telegram_id(telegram_id)
-    assert result == mock_profile
+    # Act
+    result = await user_service.create_or_get_user(telegram_id, user_data)
+
+    # Assert
+    assert result == existing_user
     mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
     mock_user_repo.create_user.assert_not_called()
 
-def test_create_or_get_user_service_user_not_exists(mock_user_repo):
-    telegram_id = 123456789
-    username = "test_user"
-    first_name = "Test"
-    last_name = "User"
+@pytest.mark.asyncio
+async def test_create_or_get_user_new(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    user_data = UserCreate(
+        name="Test User",
+        role="Developer",
+        industry="Technology",
+        skills=["Python", "FastAPI"],
+        goals=["Learn AI"],
+        interests=["Web Development"]
+    )
     mock_user_repo.get_user_by_telegram_id.return_value = None
-    mock_profile = Mock()
-    mock_user_repo.create_user.return_value = mock_profile
-    result = mock_user_repo.create_user(telegram_id, username, first_name, last_name)
-    assert result == mock_profile
-    mock_user_repo.get_user_by_telegram_id.assert_not_called()
+    new_user = UserResponse(
+        telegram_id=telegram_id,
+        name=user_data.name,
+        role=user_data.role,
+        industry=user_data.industry,
+        skills=user_data.skills,
+        goals=user_data.goals,
+        interests=user_data.interests,
+        social_points=0,
+        free_requests_remaining=5,
+        subscription_tier="free",
+        is_active_in_search=True,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    mock_user_repo.create_user.return_value = new_user
+
+    # Act
+    result = await user_service.create_or_get_user(telegram_id, user_data)
+
+    # Assert
+    assert result == new_user
+    mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
     mock_user_repo.create_user.assert_called_once()
 
-def test_update_user_profile_service_success(mock_user_repo):
-    user_id = 1
-    update_data = {"skills": ["Python", "FastAPI"], "goals": ["Learn Testing"], "interests": ["AI", "ML"]}
-    mock_profile = Mock()
-    mock_user_repo.update_user_profile.return_value = mock_profile
-    result = mock_user_repo.update_user_profile(user_id, update_data)
-    assert result == mock_profile
-    mock_user_repo.update_user_profile.assert_called_once()
+@pytest.mark.asyncio
+async def test_get_user_profile_success(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    user = UserResponse(
+        telegram_id=telegram_id,
+        name="Test User",
+        role="Developer",
+        industry="Technology",
+        skills=["Python", "FastAPI"],
+        goals=["Learn AI"],
+        interests=["Web Development"],
+        social_points=100,
+        free_requests_remaining=5,
+        subscription_tier="free",
+        is_active_in_search=True,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    mock_user_repo.get_user_by_telegram_id.return_value = user
 
-def test_update_user_profile_service_user_not_found(mock_user_repo):
-    user_id = 1
-    update_data = {"skills": ["Python"], "goals": ["Learn Testing"], "interests": ["AI"]}
-    mock_user_repo.get_user_profile.return_value = None
-    with pytest.raises(HTTPException) as exc_info:
-        raise HTTPException(status_code=404, detail="User not found")
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "User not found"
+    # Act
+    result = await user_service.get_user_profile(telegram_id)
 
-def test_update_user_profile_service_validation(mock_user_repo):
-    user_id = 1
-    # Test too many skills
-    with pytest.raises(HTTPException) as exc_info:
-        raise HTTPException(status_code=400, detail="Maximum 10 skills allowed.")
-    assert exc_info.value.status_code == 400
-    assert "Maximum 10 skills allowed" in exc_info.value.detail
-    # Test too many goals
-    with pytest.raises(HTTPException) as exc_info:
-        raise HTTPException(status_code=400, detail="Maximum 5 goals allowed.")
-    assert exc_info.value.status_code == 400
-    assert "Maximum 5 goals allowed" in exc_info.value.detail
-    # Test too many interests
-    with pytest.raises(HTTPException) as exc_info:
-        raise HTTPException(status_code=400, detail="Maximum 5 interests allowed.")
-    assert exc_info.value.status_code == 400
-    assert "Maximum 5 interests allowed" in exc_info.value.detail
+    # Assert
+    assert result == user
+    mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
+
+@pytest.mark.asyncio
+async def test_get_user_profile_not_found(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    mock_user_repo.get_user_by_telegram_id.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ValueError, match=f"User with telegram_id {telegram_id} not found"):
+        await user_service.get_user_profile(telegram_id)
+    mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
+
+@pytest.mark.asyncio
+async def test_update_user_profile_success(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    existing_user = UserResponse(
+        telegram_id=telegram_id,
+        name="Test User",
+        role="Developer",
+        industry="Technology",
+        skills=["Python", "FastAPI"],
+        goals=["Learn AI"],
+        interests=["Web Development"],
+        social_points=100,
+        free_requests_remaining=5,
+        subscription_tier="free",
+        is_active_in_search=True,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    profile_data = UserProfileUpdate(
+        name="Updated Name",
+        role="Senior Developer",
+        skills=["Python", "FastAPI", "Docker"]
+    )
+    updated_user = UserResponse(
+        telegram_id=telegram_id,
+        name=profile_data.name,
+        role=profile_data.role,
+        industry=existing_user.industry,
+        skills=profile_data.skills,
+        goals=existing_user.goals,
+        interests=existing_user.interests,
+        social_points=existing_user.social_points,
+        free_requests_remaining=existing_user.free_requests_remaining,
+        subscription_tier=existing_user.subscription_tier,
+        is_active_in_search=existing_user.is_active_in_search,
+        created_at=existing_user.created_at,
+        updated_at=datetime.utcnow()
+    )
+    mock_user_repo.get_user_by_telegram_id.return_value = existing_user
+    mock_user_repo.update_user.return_value = updated_user
+
+    # Act
+    result = await user_service.update_user_profile(telegram_id, profile_data)
+
+    # Assert
+    assert result == updated_user
+    mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
+    mock_user_repo.update_user.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_user_profile_not_found(user_service, mock_user_repo):
+    # Arrange
+    telegram_id = "123456789"
+    profile_data = UserProfileUpdate(
+        name="Updated Name",
+        role="Senior Developer"
+    )
+    mock_user_repo.get_user_by_telegram_id.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ValueError, match=f"User with telegram_id {telegram_id} not found"):
+        await user_service.update_user_profile(telegram_id, profile_data)
+    mock_user_repo.get_user_by_telegram_id.assert_called_once_with(telegram_id)
+    mock_user_repo.update_user.assert_not_called()
 
 # def test_always_passes():
 #     assert True 
