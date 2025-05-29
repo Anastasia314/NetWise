@@ -5,14 +5,20 @@ This module creates and configures the FastAPI application instance,
 including registering routers and middleware.
 """
 
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db.supabase_client import get_supabase_client
-
 from app.api.users import router as user_router
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Get settings
 settings = get_settings()
+logger.info("Settings loaded successfully")
 
 app = FastAPI(
     title=settings.API_TITLE,
@@ -32,6 +38,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(user_router, prefix="/api/v1")
+logger.info("Routers registered")
 
 @app.get("/")
 async def root():
@@ -66,6 +73,7 @@ async def health_check():
             "environment": settings.APP_ENV
         }
     except Exception as e:
+        logger.error(f"Health check failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail={
