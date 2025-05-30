@@ -1,58 +1,86 @@
-
-## `current-feature-plan.md`
-
-**Title:** API Documentation: User Endpoints (OpenAPI)
+# **Current Feature Plan: Bot API Client Setup**
 
 **Feature Description:**
-This feature focuses on adding comprehensive OpenAPI documentation to the User API endpoints implemented in `app/api/users.py`. By leveraging FastAPI's automatic documentation generation capabilities through Pydantic models and Python docstrings, we will ensure that all user-related endpoints (`/onboard`, `/profile`) are clearly described, including their purpose, request parameters, request bodies, and possible responses. This documentation is crucial for developers interacting with the API, including the team building the Telegram bot.
+This feature involves creating a dedicated API client within the Telegram bot application. This client will be responsible for all communication with the NetWise backend FastAPI application. For this initial setup, it will handle interactions related to user onboarding (registration) and profile management (fetching and updating user profiles). The client will use `httpx` for asynchronous HTTP requests and include robust error handling.
 
 **Tasks:**
-*   `- [ ] DOC: Add detailed docstrings to the `POST /users/onboard` endpoint function in `app/api/users.py`. Include a summary, description, and details about the request body (referencing the Pydantic model) and expected responses (e.g., 200, 201, 422).`
-*   `- [ ] DOC: Add `tags=["Users"]` parameter to the `APIRouter` decorator for the `POST /users/onboard` endpoint to group it in the OpenAPI documentation.`
-*   `- [ ] DOC: Add `response_model=UserResponse` to the decorator for `POST /users/onboard` to specify the successful response schema. Define `responses` for different status codes (e.g., 201 for created, 200 for existing).`
-*   `- [ ] DOC: Add detailed docstrings to the `GET /users/{path_telegram_id}/profile` endpoint function in `app/api/users.py`. Include summary, description, path parameter details, header parameter (`X-Telegram-Id`) details, and expected responses (e.g., 200, 404, 403).`
-*   `- [ ] DOC: Add `tags=["Users"]` parameter to the `APIRouter` decorator for the `GET /users/{path_telegram_id}/profile` endpoint.`
-*   `- [ ] DOC: Add `response_model=UserResponse` to the decorator for `GET /users/{path_telegram_id}/profile`. Define `responses` for different status codes (e.g., 404, 403).`
-*   `- [ ] DOC: Add detailed docstrings to the `PUT /users/{path_telegram_id}/profile` endpoint function in `app/api/users.py`. Include summary, description, path parameter details, header parameter (`X-Telegram-Id`) details, request body (referencing `UserProfileUpdate`), and expected responses (e.g., 200, 404, 403, 422).`
-*   `- [ ] DOC: Add `tags=["Users"]` parameter to the `APIRouter` decorator for the `PUT /users/{path_telegram_id}/profile` endpoint.`
-*   `- [ ] DOC: Add `response_model=UserResponse` to the decorator for `PUT /users/{path_telegram_id}/profile`. Define `responses` for different status codes (e.g., 404, 403).`
-*   `- [ ] DOC: Review Pydantic models (`UserCreate`, `UserProfileUpdate`, `UserResponse`, and any request-specific models for onboarding) in `app/models/user_models.py` to ensure field descriptions (`Field(description="...")`) are present for clarity in the OpenAPI schema.`
-*   `- [ ] DOC: Verify that the main FastAPI application instance in `app/main.py` has appropriate `title`, `description`, and `version` parameters set for the overall OpenAPI documentation.`
-*   `- [ ] DOC: Run the FastAPI application locally and access the auto-generated OpenAPI documentation (usually at `/docs` and `/redoc`) to verify correctness and completeness of the User endpoints documentation.`
+
+- [ ] **FEAT: Initialize `APIClient` class in `bot/services/api_client.py`**
+    *   Create the file `bot/services/api_client.py`.
+    *   Define an `APIClient` class.
+    *   Implement an `__init__` method that accepts `base_url: str` (for the backend API) and an optional `timeout: float` (defaulting to ~10 seconds).
+    *   Initialize an `httpx.AsyncClient` instance within the `__init__` method, configured with the base URL and timeout.
+    *   Define custom exception classes (e.g., `APIClientError` as a base, `APIClientResponseError` for non-2xx HTTP responses) either in this file or a shared `bot/utils/exceptions.py`.
+    *   Ensure the `API_BASE_URL` can be loaded from a configuration file (e.g., `bot/core/config.py` sourcing from environment variables).
+
+- [ ] **FEAT: Implement `onboard_user` method in `APIClient`**
+    *   Define an `async def onboard_user(self, telegram_id: int, name: str, username: Optional[str] = None) -> Dict:` method in `APIClient`.
+    *   Construct the JSON payload: `{"telegram_id": telegram_id, "name": str(name), "username": username}`. (Ensuring `name` is stringified as Telegram's `first_name` can be complex).
+    *   Make an asynchronous POST request to the backend's `/users/onboard` endpoint (or `/users/register` as per final backend implementation).
+    *   Implement error handling:
+        *   Catch `httpx.RequestError` (and subtypes like `ConnectTimeout`, `ReadTimeout`) and raise a custom `APIClientError`.
+        *   Check the HTTP response status. If not 2xx (e.g., 200, 201), raise `APIClientResponseError` with status code and response content.
+    *   On success, parse the JSON response and return it as a dictionary.
+
+- [ ] **FEAT: Implement `get_user_profile` method in `APIClient`**
+    *   Define an `async def get_user_profile(self, telegram_id: int) -> Dict:` method in `APIClient`.
+    *   Make an asynchronous GET request to the backend's `/users/{telegram_id}/profile` endpoint.
+    *   Implement error handling similar to the `onboard_user` method.
+    *   On success, parse the JSON response and return it as a dictionary.
+
+- [ ] **FEAT: Implement `update_user_profile` method in `APIClient`**
+    *   Define an `async def update_user_profile(self, telegram_id: int, profile_data: Dict) -> Dict:` method in `APIClient`.
+    *   The `profile_data` dictionary should correspond to the backend's `UserProfileUpdate` Pydantic model.
+    *   Make an asynchronous PUT request to the backend's `/users/{telegram_id}/profile` endpoint, sending `profile_data` as the JSON body.
+    *   Implement error handling similar to the `onboard_user` method.
+    *   On success, parse the JSON response and return it as a dictionary.
+
+- [ ] **TEST: Add unit tests for `APIClient` initialization and basic error handling**
+    *   Create `tests/bot/services/test_api_client.py`.
+    *   Write tests to verify:
+        *   Correct instantiation of `APIClient` with `base_url` and `httpx.AsyncClient`.
+        *   Custom exceptions (`APIClientError`, `APIClientResponseError`) are raised appropriately (can use `respx` to mock a generic failing request for this).
+
+- [ ] **TEST: Add unit tests for `APIClient.onboard_user` method**
+    *   Use `respx` to mock the `/users/onboard` (or `/users/register`) endpoint.
+    *   Test the successful case (e.g., 201 Created response) and verify the returned data.
+    *   Test API error responses (e.g., 400 Bad Request, 422 Unprocessable Entity, 500 Internal Server Error) and ensure correct exceptions are raised.
+    *   Test network errors (e.g., `httpx.ConnectTimeout`) and ensure `APIClientError` is raised.
+
+- [ ] **TEST: Add unit tests for `APIClient.get_user_profile` method**
+    *   Use `respx` to mock the `/users/{telegram_id}/profile` endpoint.
+    *   Test the successful case (200 OK response) and verify the returned data.
+    *   Test API error responses (e.g., 404 Not Found, 500 Internal Server Error).
+    *   Test network errors.
+
+- [ ] **TEST: Add unit tests for `APIClient.update_user_profile` method**
+    *   Use `respx` to mock the `/users/{telegram_id}/profile` endpoint.
+    *   Test the successful case (200 OK response) and verify the returned data.
+    *   Test API error responses (e.g., 400 Bad Request, 404 Not Found, 422 Unprocessable Entity, 500 Internal Server Error).
+    *   Test network errors.
+
+- [ ] **REFACTOR: Integrate `APIClient` instance into bot's context or DI system**
+    *   Update `bot/main.py` (or where bot/dispatcher are initialized) to:
+        *   Load `API_BASE_URL` from configuration.
+        *   Instantiate the `APIClient`.
+        *   Make the `APIClient` instance available to handlers (e.g., by passing it through `aiogram`'s dispatcher context, using middleware, or a simple DI approach).
 
 **Files Involved:**
-*   `app/api/users.py` (primary file for adding docstrings and decorator parameters)
-*   `app/models/user_models.py` (for adding descriptions to Pydantic model fields)
-*   `app/main.py` (for setting global OpenAPI metadata)
+*   `bot/services/api_client.py` (New file)
+*   `bot/core/config.py` (For `API_BASE_URL` configuration)
+*   `bot/main.py` (Or relevant bot initialization module, for `APIClient` instantiation and DI)
+*   `tests/bot/services/test_api_client.py` (New file)
+*   `bot/utils/exceptions.py` (Potentially new, for custom API client exceptions)
 
 **External Dependencies:**
-*   `fastapi` (provides the OpenAPI generation capabilities)
-*   `pydantic` (models are used to generate schemas)
+*   `httpx`: For making asynchronous HTTP requests.
+*   `pytest`: For running unit tests.
+*   `pytest-asyncio`: For testing asynchronous code with pytest.
+*   `respx`: For mocking `httpx` requests in tests.
 
 **Notes:**
-*   FastAPI uses the function docstring as the description for the endpoint. The first line is the summary.
-*   Pydantic model field descriptions (e.g., `Field(..., description="User's primary role")`) will appear in the schema definitions.
-*   The `tags` parameter in endpoint decorators helps organize endpoints in the UI.
-*   The `responses` parameter in endpoint decorators allows specifying schemas and descriptions for different HTTP status codes, enhancing documentation clarity. Example:
-    ```python
-    @router.get(
-        "/{item_id}",
-        response_model=Item,
-        responses={
-            404: {"description": "Item not found"},
-            200: {
-                "description": "The item requested by Id",
-                "content": {
-                    "application/json": {
-                        "example": {"id": "foo", "title": "Foo", "description": "A very nice Item"}
-                    }
-                },
-            },
-        },
-    )
-    ```
-*   Thoroughly reviewing the generated `/docs` page is key to ensure the documentation is accurate and user-friendly.
-
----
-
-This concludes Phase 1. The next phase will be **Phase 2: Telegram Bot - User Onboarding & Profile Management**.
+*   The API endpoints (`/users/onboard`, `/users/{telegram_id}/profile`) and expected JSON payloads/responses must align with the backend API implemented in Phase 1.
+*   The `APIClient` should be designed to be easily extensible for future API methods.
+*   Consider adding a `async def close(self)` method to the `APIClient` to properly close the `httpx.AsyncClient` session, and call this during bot shutdown.
+*   Logging within the `APIClient` methods (e.g., logging outgoing requests, received responses/errors) would be beneficial for debugging.
+```

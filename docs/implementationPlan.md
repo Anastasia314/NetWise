@@ -72,14 +72,14 @@
     *   `- [x]` Implement `update_user_profile_service(telegram_id, profile_data)`: Business logic, validation.
     *   `- [x]` Implement `get_user_profile_service(telegram_id)`.
     *   `- [x]` Unit tests for service functions (mocking repository).
-*   `- [ ]` **Backend: User API Endpoints (`app/api/users.py`)**
-    *   `- [ ]` Implement `POST /users/register` (or `/users/onboard`): Called by bot on first `/start`.
-    *   `- [ ]` Implement `GET /users/{telegram_id}/profile`.
-    *   `- [ ]` Implement `PUT /users/{telegram_id}/profile`.
-    *   `- [ ]` `app/api/deps.py`: `get_current_user` (simple Telegram ID from header for MVP).
-    *   `- [ ]` Integration tests for API endpoints.
-*   `- [ ]` **Documentation:**
-    *   `- [ ]` Document User API endpoints (OpenAPI via FastAPI docstrings).
+*   `- [x]` **Backend: User API Endpoints (`app/api/users.py`)**
+    *   `- [x]` Implement `POST /users/register` (or `/users/onboard`): Called by bot on first `/start`.
+    *   `- [x]` Implement `GET /users/{telegram_id}/profile`.
+    *   `- [x]` Implement `PUT /users/{telegram_id}/profile`.
+    *   `- [x]` `app/api/deps.py`: `get_current_user` (simple Telegram ID from header for MVP).
+    *   `- [x]` Integration tests for API endpoints.
+*   `- [x]` **Documentation:**
+    *   `- [x]` Document User API endpoints (OpenAPI via FastAPI docstrings).
 
 ---
 
