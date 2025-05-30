@@ -85,12 +85,12 @@
 
 ### Phase 2: Telegram Bot - User Onboarding & Profile Management
 
-*   `- [ ]` **Bot: API Client Setup (`bot/services/api_client.py`)**
-    *   `- [ ]` `APIClient` class initialization.
-    *   `- [ ]` Implement `onboard_user(telegram_id, name, username)` method.
-    *   `- [ ]` Implement `get_user_profile(telegram_id)` method.
-    *   `- [ ]` Implement `update_user_profile(telegram_id, profile_data)` method.
-    *   `- [ ]` Unit tests for API client methods (mocking `httpx`).
+*   `- [x]` **Bot: API Client Setup (`bot/services/api_client.py`)**
+    *   `- [x]` `APIClient` class initialization.
+    *   `- [x]` Implement `onboard_user(telegram_id, name, username)` method.
+    *   `- [x]` Implement `get_user_profile(telegram_id)` method.
+    *   `- [x]` Implement `update_user_profile(telegram_id, profile_data)` method.
+    *   `- [x]` Unit tests for API client methods (mocking `httpx`).
 *   `- [ ]` **Bot: User States (`bot/states/user_states.py`)**
     *   `- [ ]` Define `ProfileSetup` FSM StatesGroup (e.g., `ASK_NAME`, `ASK_ROLE`, `ASK_INDUSTRY`, `ASK_SKILLS`, `ASK_GOALS`, `ASK_INTERESTS`).
 *   `- [ ]` **Bot: Keyboards (`bot/keyboards/`)**
