@@ -2,6 +2,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 import asyncio
 import logging
+import os
+from dotenv import load_dotenv
 from core.config import get_settings, Config
 from handlers.common_handlers import handle_start
 from services.api_client import APIClient
