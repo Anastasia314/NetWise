@@ -9,40 +9,40 @@
 ### **Phase 0: Project Setup & Foundational Elements (1-2 days)**
 
 *   **Task 0.1: Project Initialization & Version Control**
-    *   `- [ ]` Create project directory (`netwise`).
-    *   `- [ ]` Initialize Git repository (`git init`).
-    *   `- [ ]` Create initial `.gitignore` file.
-    *   `- [ ]` Create `README.md` with basic project info.
-    *   `- [ ]` Set up remote repository (e.g., GitHub, GitLab).
+    *   `- [x]` Create project directory (`netwise`).
+    *   `- [x]` Initialize Git repository (`git init`).
+    *   `- [x]` Create initial `.gitignore` file.
+    *   `- [x]` Create `README.md` with basic project info.
+    *   `- [x]` Set up remote repository (e.g., GitHub, GitLab).
 *   **Task 0.2: Environment & Dependency Management**
-    *   `- [ ]` Set up Python virtual environment (e.g., `venv`).
-    *   `- [ ]` Install core dependencies: `aiogram`, `python-dotenv`, `supabase`, `apscheduler`. (OpenAI client removed for now).
-    *   `- [ ]` Create `requirements.txt` (`pip freeze > requirements.txt`).
-    *   `- [ ]` Create `.env.example` file with all necessary environment variables (excluding OpenAI API key for now).
-    *   `- [ ]` Create local `.env` file and populate with actual (test/dev) credentials (Telegram Bot Token, Supabase URL/Key).
+    *   `- [x]` Set up Python virtual environment (e.g., `venv`).
+    *   `- [x]` Install core dependencies: `aiogram`, `python-dotenv`, `supabase`, `apscheduler`. (OpenAI client removed for now).
+    *   `- [x]` Create `requirements.txt` (`pip freeze > requirements.txt`).
+    *   `- [x]` Create `.env.example` file with all necessary environment variables (excluding OpenAI API key for now).
+    *   `- [x]` Create local `.env` file and populate with actual (test/dev) credentials (Telegram Bot Token, Supabase URL/Key).
 *   **Task 0.3: Basic Project Structure**
-    *   `- [ ]` Create main package directory `netwise_bot/` and `__init__.py`.
-    *   `- [ ]` Create `main.py` at the root.
-    *   `- [ ]` Create `netwise_bot/config.py`.
-    *   `- [ ]` Create `netwise_bot/bot_instance.py`.
+    *   `- [x]` Create main package directory `netwise_bot/` and `__init__.py`.
+    *   `- [x]` Create `main.py` at the root.
+    *   `- [x]` Create `netwise_bot/config.py`.
+    *   `- [x]` Create `netwise_bot/bot_instance.py`.
 *   **Task 0.4: Initial Supabase Setup**
-    *   `- [ ]` Create Supabase project.
+    *   `- [x]` Create Supabase project.
     *   `- [ ]` Design and create initial DB tables (start with `users` table).
         *   `- [ ]` Define `users` table schema (columns, types, constraints).
         *   `- [ ]` Implement `users` table in Supabase Studio.
     *   `- [ ]` Get Supabase URL and Service Role Key for `.env`.
 *   **Task 0.5: Basic Bot Connection & "Hello World"**
-    *   `- [ ]` **Implement `netwise_bot/config.py`:** Load environment variables.
-    *   `- [ ]` **Implement `netwise_bot/bot_instance.py`:** Initialize `Bot` and `Dispatcher`.
-    *   `- [ ]` **Implement basic `main.py`:**
-        *   `- [ ]` Load config.
-        *   `- [ ]` Initialize bot & dispatcher.
-        *   `- [ ]` Create a simple `/start` handler in `main.py` (or a new `handlers/common.py`) that replies "Hello NetWise!"
-        *   `- [ ]` Start polling.
+    *   `- [x]` **Implement `netwise_bot/config.py`:** Load environment variables.
+    *   `- [x]` **Implement `netwise_bot/bot_instance.py`:** Initialize `Bot` and `Dispatcher`.
+    *   `- [x]` **Implement basic `main.py`:**
+        *   `- [x]` Load config.
+        *   `- [x]` Initialize bot & dispatcher.
+        *   `- [x]` Create a simple `/start` handler in `main.py` (or a new `handlers/common.py`) that replies "Hello NetWise!"
+        *   `- [x]` Start polling.
     *   `- [ ]` **Test:** Run `main.py` and send `/start` to your bot in Telegram.
         *   *Checkpoint:* Bot responds "Hello NetWise!".
 *   **Task 0.6: Logging Setup**
-    *   `- [ ]` Configure basic logging in `main.py` (e.g., to console, `INFO` level).
+    *   `- [x]` Configure basic logging in `main.py` (e.g., to console, `INFO` level).
 
 ---
 

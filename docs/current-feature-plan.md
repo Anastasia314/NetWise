@@ -111,4 +111,64 @@ This feature implements the conversational flow for user profile creation and ed
 *   The `/cancel` command provides an essential escape hatch for users from the FSM flow.
 *   The text for prompts can be moved to a separate constants or localization file later for better maintainability.
 *   Initial implementation of "Edit Profile" will restart the flow from `ASK_NAME`. A more advanced version might fetch existing data and allow editing field by field, or show current values in prompts. For MVP, a full re-run is simpler.
+
+# **Project Setup & Foundational Elements**
+
+**Title** — Project Setup & Foundational Elements
+
+**Feature description** — Initial setup of the NetWise Telegram bot project, including directory structure, version control, environment configuration, and basic bot functionality.
+
+**Tasks**
+- [ ] Create project directory (`netwise`)
+- [ ] Initialize Git repository (`git init`)
+- [ ] Create initial `.gitignore` file
+- [ ] Create `README.md` with basic project info
+- [ ] Set up remote repository (e.g., GitHub, GitLab)
+- [ ] Set up Python virtual environment (e.g., `venv`)
+- [ ] Install core dependencies: `aiogram`, `python-dotenv`, `supabase`, `apscheduler`
+- [ ] Create `requirements.txt`
+- [ ] Create `.env.example` file
+- [ ] Create local `.env` file
+- [ ] Create main package directory `netwise_bot/` and `__init__.py`
+- [ ] Create `main.py` at the root
+- [ ] Create `netwise_bot/config.py`
+- [ ] Create `netwise_bot/bot_instance.py`
+- [ ] Create Supabase project
+- [ ] Design and create initial DB tables (start with `users` table)
+- [ ] Get Supabase URL and Service Role Key for `.env`
+- [ ] Implement `netwise_bot/config.py`: Load environment variables
+- [ ] Implement `netwise_bot/bot_instance.py`: Initialize `Bot` and `Dispatcher`
+- [ ] Implement basic `main.py`:
+  - [ ] Load config
+  - [ ] Initialize bot & dispatcher
+  - [ ] Create a simple `/start` handler
+  - [ ] Start polling
+- [ ] Test: Run `main.py` and send `/start` to bot
+- [ ] Configure basic logging in `main.py`
+
+**Files involved**
+- `.gitignore`
+- `README.md`
+- `requirements.txt`
+- `.env.example`
+- `.env`
+- `main.py`
+- `netwise_bot/__init__.py`
+- `netwise_bot/config.py`
+- `netwise_bot/bot_instance.py`
+
+**External dependencies**
+- Python 3.8+
+- aiogram
+- python-dotenv
+- supabase-py
+- apscheduler
+
+**Notes**
+- The project will be structured as a Python package
+- Environment variables will be used for sensitive data
+- Basic logging will be configured for development
+- The initial bot will have a simple `/start` command
+- Supabase will be used as the database backend
+- The project will be hosted on Railway
 ```

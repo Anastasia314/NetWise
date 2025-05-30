@@ -1,14 +1,44 @@
-# NetWise
+# NetWise Telegram Bot
 
-NetWise is an intelligent networking assistant designed to help founders, freelancers, and IT specialists within the startup ecosystem effectively solve professional queries through warm connections. This MVP (Minimum Viable Product) starts as a Telegram bot.
+An intelligent networking assistant that helps users solve professional queries through warm connections in their network.
 
-## Core Features (MVP)
+## Features
 
-*   **User Profile Creation:** Name, role, industry, skills, goals, interests.
-*   **Friend Invitation System:** Build a personal connection graph (1st and 2nd degree).
-*   **Request Formulation:** Users can describe their professional problems or needs.
-*   **Keyword-Based Matching:** Finds relevant people among friends and friends of friends.
-*   **Daily Request Digests:** Suggests requests where the user might be helpful.
-*   **Social Points System:** Earn points for helping, spend points for making requests.
-*   **Basic Monetization:** Freemium model with a few free requests, then paid options.
-*   **Trust Scoring:** Basic mechanism to evaluate connection strength.
+- User profile creation and management
+- Friend invitation system and personal connection graph
+- Request formulation and AI-powered matching
+- Daily request digests
+- Activity history and social points system
+- Trust scoring mechanism
+- User activity monitoring
+
+## Setup
+
+1. Clone the repository
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Copy `.env.example` to `.env` and fill in your credentials:
+   - Telegram Bot Token
+   - Supabase URL and Key
+5. Run the bot:
+   ```bash
+   python main.py
+   ```
+
+## Development
+
+- Python 3.8+
+- aiogram for Telegram Bot API
+- Supabase for database
+- APScheduler for scheduled tasks
+
+## License
+
+MIT License
