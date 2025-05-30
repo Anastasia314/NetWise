@@ -52,7 +52,7 @@ class APIClient:
         }
         
         try:
-            response = await self.client.post("/api/users", json=payload)
+            response = await self.client.post("/api/v1/users/users", json=payload)
             response.raise_for_status()
             return response.json()
         except httpx.RequestError as e:
@@ -77,7 +77,7 @@ class APIClient:
             APIClientResponseError: For non-2xx HTTP responses
         """
         try:
-            response = await self.client.get(f"/users/{telegram_id}/profile")
+            response = await self.client.get(f"/api/v1/users/users/me")
             response.raise_for_status()
             return response.json()
         except httpx.RequestError as e:
@@ -103,7 +103,7 @@ class APIClient:
             APIClientResponseError: For non-2xx HTTP responses
         """
         try:
-            response = await self.client.put(f"/users/{telegram_id}/profile", json=profile_data)
+            response = await self.client.patch(f"/api/v1/users/users/me", json=profile_data)
             response.raise_for_status()
             return response.json()
         except httpx.RequestError as e:
