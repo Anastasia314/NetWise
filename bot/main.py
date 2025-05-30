@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from core.config import get_settings, Config
 from handlers.common_handlers import handle_start
 from services.api_client import APIClient
+from middleware.api_client import APIClientMiddleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +30,9 @@ async def main():
         api_client = APIClient(base_url=Config.API_BASE_URL)
         logger.info(f"API client initialized with base URL: {Config.API_BASE_URL}")
         
-        # Make API client available to handlers through bot's context
-        bot["api_client"] = api_client
+        # Register middleware
+        dp.update.middleware(APIClientMiddleware(api_client))
+        logger.info("API client middleware registered")
         
         # Register handlers
         dp.message.register(handle_start, CommandStart())
@@ -44,9 +46,8 @@ async def main():
         raise
     finally:
         # Clean up resources
-        if "api_client" in bot:
-            await bot["api_client"].close()
-            logger.info("API client closed")
+        await api_client.close()
+        logger.info("API client closed")
 
 if __name__ == '__main__':
     asyncio.run(main()) 
