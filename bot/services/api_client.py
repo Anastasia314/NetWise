@@ -1,7 +1,7 @@
 import httpx
 import logging
 from typing import Dict, Optional
-from bot.utils.exceptions import APIClientError, APIClientResponseError
+from utils.exceptions import APIClientError, APIClientResponseError
 
 logger = logging.getLogger(__name__)
 

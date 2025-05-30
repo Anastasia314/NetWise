@@ -1,27 +1,24 @@
 # Use Python 3.11 slim image as base
-FROM python:3.11-slim-bullseye
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
+# Copy requirements first to leverage Docker cache
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy bot application code
-COPY . /app/
+# Copy the rest of the application
+COPY . .
 
-# Command to run the bot
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Run the bot
 CMD ["python", "main.py"] 
