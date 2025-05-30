@@ -1,44 +1,70 @@
-# **Current Feature Plan: Bot User Profile Setup States**
+# **Current Feature Plan: Bot UI Keyboards**
 
 **Feature Description:**
-This feature involves defining the Finite State Machine (FSM) states required for the user profile setup and editing process within the Telegram bot. These states will guide the user through a multi-step conversation to collect their profile information (name, role, industry, skills, goals, interests). This structure is essential for managing conversation flow and context.
+This feature focuses on creating the user interface elements (keyboards) for the Telegram bot. These include inline keyboards for contextual actions like editing a profile or skipping a question during profile setup, and reply keyboards for persistent options like the main menu. These keyboards enhance user interaction by providing clear, tappable options.
 
 **Tasks:**
 
-- [x] **FEAT: Create `bot/states` directory and `user_states.py` file**
-    *   Create the directory `bot/states/` if it doesn't exist.
-    *   Create a new Python file `bot/states/user_states.py`.
+- [ ] **FEAT: Create `bot/keyboards` directory**
+    *   Create the directory `bot/keyboards/` if it doesn't exist.
+    *   Add an `__init__.py` file to `bot/keyboards/` to mark it as a package.
 
-- [x] **FEAT: Define `ProfileSetup` StatesGroup in `user_states.py`**
-    *   Import `StatesGroup` and `State` from `aiogram.fsm.state`.
-    *   Define a class `ProfileSetup(StatesGroup)` inheriting from `StatesGroup`.
-    *   Inside the `ProfileSetup` class, define individual states as class attributes using `State()`:
-        *   `ASK_NAME = State()`
-        *   `ASK_ROLE = State()`
-        *   `ASK_INDUSTRY = State()`
-        *   `ASK_SKILLS = State()`
-        *   `ASK_GOALS = State()`
-        *   `ASK_INTERESTS = State()`
-        *   (Consider adding a `CONFIRMATION = State()` if a summary and confirmation step is desired before saving).
+- [ ] **FEAT: Create `bot/keyboards/inline_keyboards.py` and basic structure**
+    *   Create a new Python file `bot/keyboards/inline_keyboards.py`.
+    *   Import `InlineKeyboardMarkup` and `InlineKeyboardButton` from `aiogram.types`.
 
-- [x] **DOC: Add docstrings to `ProfileSetup` StatesGroup and individual states**
-    *   Add a class-level docstring to `ProfileSetup` explaining its purpose.
-    *   Add brief docstrings to each `State` explaining what information is being requested in that state.
+- [ ] **FEAT: Implement `edit_profile_keyboard()` in `inline_keyboards.py`**
+    *   Define a function `def edit_profile_keyboard() -> InlineKeyboardMarkup:`.
+    *   Create an `InlineKeyboardButton` with text like "✏️ Edit Profile" (or similar).
+    *   Assign a `callback_data` to this button (e.g., `"edit_profile"`). This data will be used to identify the button press in callback query handlers.
+    *   Return an `InlineKeyboardMarkup` containing this button.
+    *   Add a docstring explaining the keyboard's purpose.
 
-- [x] **TEST: (Placeholder) Basic import test for `user_states.py`**
-    *   Create `tests/bot/states/test_user_states.py`.
-    *   Add a simple test to ensure `ProfileSetup` and its states can be imported without error. (More meaningful tests will come when these states are used in handlers).
+- [ ] **FEAT: Implement `skip_question_keyboard()` in `inline_keyboards.py`**
+    *   Define a function `def skip_question_keyboard(question_identifier: str) -> InlineKeyboardMarkup:`.
+        *   The `question_identifier` could be used to form part of the callback data if different skip actions are needed, or a generic "skip" callback is fine for now.
+    *   Create an `InlineKeyboardButton` with text like "➡️ Skip" or "Пропустить".
+    *   Assign a `callback_data` (e.g., `"skip_question"` or `f"skip_{question_identifier}"`).
+    *   Return an `InlineKeyboardMarkup` containing this button.
+    *   Add a docstring explaining the keyboard's purpose.
+
+- [ ] **FEAT: Create `bot/keyboards/reply_keyboards.py` and basic structure**
+    *   Create a new Python file `bot/keyboards/reply_keyboards.py`.
+    *   Import `ReplyKeyboardMarkup`, `KeyboardButton` from `aiogram.types`.
+
+- [ ] **FEAT: Implement `main_menu_keyboard()` in `reply_keyboards.py`**
+    *   Define a function `def main_menu_keyboard() -> ReplyKeyboardMarkup:`.
+    *   Create `KeyboardButton` instances for main menu options. Based on PRD/ADD, initial options might include:
+        *   "👤 My Profile" (corresponds to `/profile` command)
+        *   "➕ New Request" (corresponds to `/new_request` command)
+        *   "🤝 My Friends" (corresponds to `/my_friends` command)
+        *   "🔗 Invite Friend" (corresponds to `/invite` command)
+        *   (Consider adding "📊 My Points" or "📜 My Requests" later based on feature rollout)
+    *   Build a `ReplyKeyboardMarkup` with these buttons. Consider `resize_keyboard=True` and `one_time_keyboard=False` (or `True` if preferred for some contexts).
+    *   Arrange buttons in rows as desired (e.g., using `.row()` or `.add()`).
+    *   Return the `ReplyKeyboardMarkup`.
+    *   Add a docstring explaining the keyboard's purpose.
+
+- [ ] **TEST: (Placeholder) Basic import and construction tests for keyboards**
+    *   Create `tests/bot/keyboards/test_inline_keyboards.py`.
+    *   Add tests to call `edit_profile_keyboard()` and `skip_question_keyboard()` and verify they return `InlineKeyboardMarkup` instances with the expected number of buttons and callback data.
+    *   Create `tests/bot/keyboards/test_reply_keyboards.py`.
+    *   Add a test to call `main_menu_keyboard()` and verify it returns a `ReplyKeyboardMarkup` instance with the expected buttons/text.
 
 **Files Involved:**
-*   `bot/states/user_states.py` (New file)
-*   `tests/bot/states/test_user_states.py` (New file)
+*   `bot/keyboards/__init__.py` (New file)
+*   `bot/keyboards/inline_keyboards.py` (New file)
+*   `bot/keyboards/reply_keyboards.py` (New file)
+*   `tests/bot/keyboards/test_inline_keyboards.py` (New file)
+*   `tests/bot/keyboards/test_reply_keyboards.py` (New file)
 
 **External Dependencies:**
-*   `aiogram`: Specifically `aiogram.fsm.state.StatesGroup` and `aiogram.fsm.state.State`.
-*   `pytest`: For running the basic import test.
+*   `aiogram`: Specifically `aiogram.types.InlineKeyboardMarkup`, `aiogram.types.InlineKeyboardButton`, `aiogram.types.ReplyKeyboardMarkup`, `aiogram.types.KeyboardButton`.
+*   `pytest`: For running tests.
 
 **Notes:**
-*   The order of states defined usually reflects the intended conversation flow.
-*   These states will be used by `aiogram`'s `Dispatcher` and `FSMContext` to manage the user's current position in the profile setup dialogue.
-*   The names of the states (`ASK_NAME`, `ASK_ROLE`, etc.) should be descriptive and clearly indicate the purpose of each step in the profile creation/editing process.
-*   This task only defines the states; the handlers that utilize these states will be implemented in a subsequent task ("Bot: User Handlers").
+*   Callback data for inline keyboards should be chosen carefully to be unique and easily parsable by handlers.
+*   Text for reply keyboard buttons should ideally match the commands they trigger if they are shortcuts for commands, for consistency.
+*   Consider localization early if the bot will support multiple languages; keyboard text would be a prime candidate for internationalization. For MVP, hardcoded strings are fine.
+*   The specific buttons in `main_menu_keyboard()` might evolve as more features are implemented. This plan reflects a reasonable starting set for user profile and initial interactions.
+```

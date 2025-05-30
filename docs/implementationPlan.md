@@ -91,8 +91,8 @@
     *   `- [x]` Implement `get_user_profile(telegram_id)` method.
     *   `- [x]` Implement `update_user_profile(telegram_id, profile_data)` method.
     *   `- [x]` Unit tests for API client methods (mocking `httpx`).
-*   `- [ ]` **Bot: User States (`bot/states/user_states.py`)**
-    *   `- [ ]` Define `ProfileSetup` FSM StatesGroup (e.g., `ASK_NAME`, `ASK_ROLE`, `ASK_INDUSTRY`, `ASK_SKILLS`, `ASK_GOALS`, `ASK_INTERESTS`).
+*   `- [x]` **Bot: User States (`bot/states/user_states.py`)**
+    *   `- [x]` Define `ProfileSetup` FSM StatesGroup (e.g., `ASK_NAME`, `ASK_ROLE`, `ASK_INDUSTRY`, `ASK_SKILLS`, `ASK_GOALS`, `ASK_INTERESTS`).
 *   `- [ ]` **Bot: Keyboards (`bot/keyboards/`)**
     *   `- [ ]` `inline_keyboards.py`: `edit_profile_keyboard()`, `skip_question_keyboard()`.
     *   `- [ ]` `reply_keyboards.py`: `main_menu_keyboard()`.
