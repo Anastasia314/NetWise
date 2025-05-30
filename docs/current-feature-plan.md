@@ -1,67 +1,96 @@
-# **Current Feature Plan: Bot Profile Message Formatter**
+# **Current Feature Plan: Bot Core User Command Handlers (Start & Profile)**
 
 **Feature Description:**
-This feature involves creating a utility function to format user profile data into a human-readable string suitable for sending as a message in Telegram. This ensures a consistent and clean presentation of user profiles within the bot. The function will take a dictionary of profile data (as returned by the API client) and output a formatted string, potentially using Markdown for better aesthetics.
+This feature implements the initial user interaction points: the `/start` command for onboarding and greeting, and the `/profile` command for users to view their current profile information. The `/start` command will attempt to onboard the user via the API client and, based on their profile status, either initiate the profile setup flow or show the main menu. The `/profile` command will fetch and display the user's profile and offer an option to edit it.
 
 **Tasks:**
 
-- [x] **FEAT: Create `bot/utils` directory and `formatters.py` file**
-    *   Create the directory `bot/utils/` if it doesn't already exist.
-    *   Add an `__init__.py` file to `bot/utils/` to mark it as a package.
-    *   Create a new Python file `bot/utils/formatters.py`.
+- [ ] **FEAT: Create `bot/handlers` directory and `user_handlers.py` file**
+    *   Create the directory `bot/handlers/` if it doesn't exist.
+    *   Add an `__init__.py` file to `bot/handlers/` to mark it as a package.
+    *   Create a new Python file `bot/handlers/user_handlers.py`.
+    *   Import necessary `aiogram` modules (`Router`, `types`, `FSMContext`, `CommandStart`, `Command`).
+    *   Import `APIClient` (or its access mechanism), `ProfileSetup` states, keyboard builders, and `format_user_profile_message`.
 
-- [x] **FEAT: Implement `format_user_profile_message(profile_data: dict) -> str` function**
-    *   Define the function `format_user_profile_message(profile_data: dict) -> str` in `bot/utils/formatters.py`.
-    *   The `profile_data` dictionary is expected to match the structure of `UserResponse` from the backend API (containing fields like `name`, `role`, `industry`, `skills`, `goals`, `interests`, `social_points`, etc.).
-    *   Construct a multi-line string. Use f-strings or `str.join()` for readability.
-    *   Consider using Telegram's MarkdownV2 or HTML formatting for emphasis (e.g., bold labels, bullet points for lists like skills/goals/interests).
-        *   Example structure:
-            ```
-            👤 *Profile:* {name}
-            *Role:* {role}
-            *Industry:* {industry}
+- [ ] **FEAT: Implement `/start` command handler in `user_handlers.py`**
+    *   Define an `async def handle_start(message: types.Message, state: FSMContext, api_client: APIClient):` (adjust `api_client` injection as per DI setup).
+    *   Register this handler for the `CommandStart()` filter.
+    *   Inside the handler:
+        *   Extract `telegram_id`, `name` (first_name), and `username` from `message.from_user`.
+        *   Call `api_client.onboard_user(telegram_id, name, username)`.
+        *   Handle potential `APIClientError` exceptions gracefully (e.g., log error, inform user of a temporary issue).
+        *   If onboarding is successful, fetch the user's profile using `api_client.get_user_profile(telegram_id)`.
+        *   Check if the profile is complete (e.g., essential fields like `role`, `industry`, `skills` are filled).
+            *   If incomplete (or new user):
+                *   Send a welcome message explaining the need to set up a profile.
+                *   Set the state to the first step of `ProfileSetup` FSM (e.g., `await state.set_state(ProfileSetup.ASK_NAME)`).
+                *   Send the first question for profile setup (e.g., "What is your name/preferred display name?").
+            *   If complete:
+                *   Send a welcome back message.
+                *   Display the main menu using `main_menu_keyboard()`.
+                *   Clear any previous state: `await state.clear()`.
 
-            🎯 *Goals:*
-            - Goal 1
-            - Goal 2
+- [ ] **FEAT: Implement `/profile` command handler in `user_handlers.py`**
+    *   Define an `async def handle_profile(message: types.Message, api_client: APIClient):`.
+    *   Register this handler for the `Command("profile")` filter.
+    *   Inside the handler:
+        *   Get `telegram_id` from `message.from_user`.
+        *   Call `api_client.get_user_profile(telegram_id)`.
+        *   Handle potential `APIClientError` (e.g., user not found, API down).
+        *   If successful:
+            *   Format the profile data using `format_user_profile_message(profile_data)`.
+            *   Send the formatted profile message to the user.
+            *   Include the `edit_profile_keyboard()` as `reply_markup`.
 
-            🛠️ *Skills:*
-            - Skill 1
-            - Skill 2
+- [ ] **REFACTOR: Register `user_handlers` router in `bot/main.py`**
+    *   In `bot/handlers/user_handlers.py`, create a `Router` instance (e.g., `user_router = Router()`).
+    *   Attach the `handle_start` and `handle_profile` handlers to this `user_router`.
+    *   In `bot/main.py` (or where the main dispatcher is configured), import `user_router` and include it in the main dispatcher (e.g., `dp.include_router(user_router)`).
 
-            💡 *Interests:*
-            - Interest 1
-            - Interest 2
+- [ ] **TEST: Unit test for `/start` handler - new user/incomplete profile**
+    *   Create `tests/bot/handlers/test_user_handlers.py`.
+    *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return an incomplete profile).
+    *   Mock `FSMContext.set_state`.
+    *   Verify that `onboard_user` and `get_user_profile` are called.
+    *   Verify the correct welcome message is sent.
+    *   Verify `state.set_state` is called with the initial `ProfileSetup` state.
+    *   Verify the first profile question is sent.
 
-            🏆 *Social Points:* {social_points}
-            ```
-    *   Handle missing or `None` fields gracefully (e.g., by omitting the line or showing "Not set").
-    *   Ensure arrays/lists (like `skills`, `goals`, `interests`) are formatted nicely (e.g., comma-separated, bullet points).
-    *   Return the formatted string.
-    *   Add a docstring explaining the function's purpose, input, and output.
+- [ ] **TEST: Unit test for `/start` handler - existing user/complete profile**
+    *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return a complete profile).
+    *   Mock `FSMContext.clear`.
+    *   Verify `onboard_user` and `get_user_profile` are called.
+    *   Verify the welcome back message is sent.
+    *   Verify `main_menu_keyboard` is used.
+    *   Verify `state.clear` is called.
 
-- [x] **TEST: Add unit tests for `format_user_profile_message`**
-    *   Create `tests/bot/utils/test_formatters.py`.
-    *   Write tests to verify:
-        *   Correct formatting with all profile fields present.
-        *   Correct handling of missing or `None` fields (e.g., a field is omitted or shows a placeholder like "N/A").
-        *   Correct formatting of list-based fields (skills, goals, interests) – e.g., as comma-separated lists or bullet points.
-        *   If using Markdown/HTML, ensure the special characters are correctly escaped or used.
-        *   Test with an empty `profile_data` dictionary (should return a sensible default or empty string).
-        *   Test with various combinations of filled and empty fields.
+- [ ] **TEST: Unit test for `/profile` handler - successful profile fetch**
+    *   Mock `APIClient.get_user_profile` to return valid profile data.
+    *   Mock `format_user_profile_message`.
+    *   Mock `edit_profile_keyboard`.
+    *   Verify `get_user_profile` is called.
+    *   Verify `format_user_profile_message` is called with the profile data.
+    *   Verify the formatted message is sent with the `edit_profile_keyboard`.
+
+- [ ] **TEST: Unit test for `/profile` handler - API error**
+    *   Mock `APIClient.get_user_profile` to raise an `APIClientError`.
+    *   Verify an appropriate error message is sent to the user.
 
 **Files Involved:**
-*   `bot/utils/__init__.py` (New or existing)
-*   `bot/utils/formatters.py` (New file)
-*   `tests/bot/utils/test_formatters.py` (New file)
+*   `bot/handlers/__init__.py` (New or existing)
+*   `bot/handlers/user_handlers.py` (New file)
+*   `bot/main.py` (Or relevant bot initialization module, for router registration)
+*   `tests/bot/handlers/test_user_handlers.py` (New file)
+*   (Uses existing: `bot/services/api_client.py`, `bot/states/user_states.py`, `bot/keyboards/inline_keyboards.py`, `bot/keyboards/reply_keyboards.py`, `bot/utils/formatters.py`)
 
 **External Dependencies:**
-*   No new external dependencies specifically for this task, but it relies on standard Python string manipulation.
-*   If using complex Markdown/HTML generation, a templating engine like Jinja2 could be considered in the future, but for now, direct string formatting is sufficient.
+*   `aiogram`: Core for handlers, types, FSMContext, Command filters.
+*   `pytest`, `pytest-asyncio`: For testing.
+*   (Relies on `APIClient` which uses `httpx` and `respx` for its tests).
 
 **Notes:**
-*   This formatter function will be used by bot handlers (e.g., `/profile` command handler) to display user information.
-*   Pay attention to Telegram's message length limits if profiles can be very verbose. The formatter might need to truncate long lists or provide a summary if data is extensive. For MVP, assume data fits.
-*   The visual style (emojis, bolding) should be consistent with the overall bot's personality.
-*   The fields included should match those defined in `UserResponse` from the backend and deemed relevant for display in the bot.
+*   The "profile completeness check" in the `/start` handler needs a clear definition. For MVP, it might be checking if `role`, `industry`, and at least one `skill` are present.
+*   Error messages to the user should be user-friendly and avoid exposing technical details.
+*   The dependency injection for `APIClient` (and potentially other services like database access if not fully encapsulated by `APIClient`) needs to be consistent. `aiogram` middleware or passing context through the dispatcher are common ways. For simplicity in this plan, it's shown as a parameter.
+*   This plan defers the implementation of the FSM state handlers for profile setup and the "Edit Profile" callback query handler to the next feature plan.
 ```
