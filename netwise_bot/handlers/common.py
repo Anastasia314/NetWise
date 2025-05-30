@@ -1,7 +1,10 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from ..services.user_service import UserService
 from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_main_menu_keyboard, get_search_settings_keyboard
+from ..states.profile_states import ProfileStates
+from ..handlers.profile import show_profile
 
 # Create router for common handlers
 router = Router()
@@ -23,17 +26,10 @@ async def cmd_start(message: types.Message):
         name=message.from_user.full_name
     )
     
-    if not user:
-        await message.answer("Sorry, there was an error processing your request. Please try again later.")
-        return
-    
-    # Send welcome message
-    await message.answer(
-        f"Welcome to NetWise, {user['name']}! 🎉\n\n"
-        "I'm here to help you connect with other professionals and grow your network.\n\n"
-        "Use the menu below to get started:",
-        reply_markup=get_main_menu_keyboard()
-    )
+    if user.get('is_new', False):
+        await message.answer("Welcome to NetWise! Let's create your profile.", reply_markup=get_initial_setup_keyboard())
+    else:
+        await message.answer("Welcome back to NetWise!", reply_markup=get_main_menu_keyboard())
 
 @router.message(Command("help"))
 async def cmd_help(message: types.Message):
@@ -114,4 +110,20 @@ async def handle_search_settings_callback(callback: types.CallbackQuery):
         else:
             await callback.message.edit_text("Failed to update search settings. Please try again.")
     
-    await callback.answer() 
+    await callback.answer()
+
+@router.callback_query(F.data == "create_profile")
+async def process_create_profile_callback(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.answer("Let's create your profile! Use /myprofile to view or edit your profile.")
+
+@router.callback_query(F.data == "view_profile")
+async def process_view_profile_callback(callback: types.CallbackQuery):
+    await callback.answer()
+    await show_profile(callback.message, telegram_id=callback.from_user.id)
+
+@router.callback_query(F.data == "edit_profile")
+async def process_edit_profile_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(ProfileStates.name)
+    await callback.message.answer("Let's update your profile! What's your name or preferred display name?") 

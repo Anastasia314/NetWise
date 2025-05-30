@@ -20,4 +20,12 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
 
 # Logging Configuration
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO") 
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+def get_supabase_url() -> str:
+    """Get Supabase URL from environment variables."""
+    return SUPABASE_URL
+
+def get_supabase_key() -> str:
+    """Get Supabase key from environment variables."""
+    return SUPABASE_KEY 

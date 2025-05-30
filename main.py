@@ -20,11 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    """Handle the /start command"""
-    await message.answer("Hello NetWise!")
-
 async def main():
     """Main function to start the bot"""
     logger.info("Starting NetWise bot...")

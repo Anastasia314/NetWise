@@ -7,23 +7,23 @@ def get_initial_setup_keyboard() -> InlineKeyboardMarkup:
     Returns:
         InlineKeyboardMarkup: The keyboard markup
     """
-    keyboard = [
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Create Profile", callback_data="create_profile")]
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+    ])
+    return keyboard
 
-def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
+def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     """
     Create the main menu keyboard.
     
     Returns:
-        ReplyKeyboardMarkup: The keyboard markup
+        InlineKeyboardMarkup: The keyboard markup
     """
-    keyboard = [
-        [KeyboardButton(text="👤 Create Profile"), KeyboardButton(text="🔍 Search Settings")],
-        [KeyboardButton(text="🔗 Find Connections"), KeyboardButton(text="📋 My Profile")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="View Profile", callback_data="view_profile")],
+        [InlineKeyboardButton(text="Edit Profile", callback_data="edit_profile")]
+    ])
+    return keyboard
 
 def get_search_settings_keyboard() -> InlineKeyboardMarkup:
     """

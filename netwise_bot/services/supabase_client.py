@@ -33,6 +33,7 @@ class SupabaseClient:
         """
         try:
             response = self._client.table('users').select('*').eq('telegram_id', telegram_id).execute()
+            print(f"Fetch user response: {response.data}")
             return response.data[0] if response.data else None
         except Exception as e:
             # Log the error here
@@ -91,6 +92,7 @@ class SupabaseClient:
             
             # Update user profile
             response = self._client.table('users').update(profile_data).eq('telegram_id', telegram_id).execute()
+            print(f"Update response: {response.data}")
             return response.data[0] if response.data else None
         except Exception as e:
             # Log the error here
@@ -114,7 +116,8 @@ class SupabaseClient:
                 'social_points', 'free_requests_remaining', 'is_active_in_search',
                 'last_active_at'
             ]
-            response = self._client.table('users').select(','.join(profile_fields)).eq('telegram_id', telegram_id).execute()
+            response = self._client.table('users').select(*profile_fields).eq('telegram_id', telegram_id).execute()
+            print(f"Fetch profile response: {response.data}")
             return response.data[0] if response.data else None
         except Exception as e:
             # Log the error here

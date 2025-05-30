@@ -94,7 +94,7 @@ async def process_interests(message: types.Message, state: FSMContext):
     summary = (
         "📋 *Your Profile Summary*\n\n"
         f"👤 *Name:* {user_data['name']}\n"
-        f"�� *Role:* {user_data['role']}\n"
+        f"🏢 *Role:* {user_data['role']}\n"
         f"🏢 *Industry:* {user_data['industry']}\n"
         f"🛠 *Skills:* {', '.join(user_data['skills'])}\n"
         f"🎯 *Goals:* {', '.join(user_data['goals'])}\n"
@@ -153,10 +153,18 @@ async def process_profile_cancellation(callback: types.CallbackQuery, state: FSM
         parse_mode="Markdown"
     )
 
+def safe_join(val):
+    if not val:
+        return 'Not set'
+    if isinstance(val, list):
+        return ', '.join(val) if val else 'Not set'
+    return str(val)
+
 @router.message(Command("myprofile"))
-async def show_profile(message: types.Message):
+async def show_profile(message: types.Message, telegram_id: int = None):
     """Show user's profile information."""
-    profile = user_service.get_profile(message.from_user.id)
+    user_id = telegram_id if telegram_id is not None else message.from_user.id
+    profile = user_service.get_profile(user_id)
     
     if not profile:
         await message.answer(
@@ -167,15 +175,15 @@ async def show_profile(message: types.Message):
     
     # Format profile information
     profile_text = (
-        "👤 *Your Profile*\n\n"
-        f"*Name:* {profile['name']}\n"
-        f"*Role:* {profile['role']}\n"
-        f"*Industry:* {profile['industry']}\n"
-        f"*Skills:* {', '.join(profile['skills'])}\n"
-        f"*Goals:* {', '.join(profile['goals'])}\n"
-        f"*Interests:* {', '.join(profile['interests'])}\n"
-        f"*Social Points:* {profile['social_points']}\n"
-        f"*Free Requests Remaining:* {profile['free_requests_remaining']}\n"
+        "\U0001F464 *Your Profile*\n\n"
+        f"*Name:* {profile.get('name', 'Not set')}\n"
+        f"*Role:* {profile.get('role', 'Not set')}\n"
+        f"*Industry:* {profile.get('industry', 'Not set')}\n"
+        f"*Skills:* {safe_join(profile.get('skills'))}\n"
+        f"*Goals:* {safe_join(profile.get('goals'))}\n"
+        f"*Interests:* {safe_join(profile.get('interests'))}\n"
+        f"*Social Points:* {profile.get('social_points', 0)}\n"
+        f"*Free Requests Remaining:* {profile.get('free_requests_remaining', 5)}\n"
     )
     
     await message.answer(
