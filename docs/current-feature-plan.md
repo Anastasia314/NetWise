@@ -5,28 +5,28 @@ This feature implements the conversational flow for user profile creation and ed
 
 **Tasks:**
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_NAME` state**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_NAME` state**
     *   In `bot/handlers/user_handlers.py`, define `async def process_ask_name(message: types.Message, state: FSMContext):`.
     *   Register this handler for messages received when in the `ProfileSetup.ASK_NAME` state.
     *   Prompt the user for their role (e.g., "Great, {name}! Now, what's your current role or primary function? (e.g., Founder, Software Engineer, Product Manager)").
     *   Store the received name: `await state.update_data(name=message.text.strip())`.
     *   Transition to the next state: `await state.set_state(ProfileSetup.ASK_ROLE)`.
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_ROLE` state**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_ROLE` state**
     *   Define `async def process_ask_role(message: types.Message, state: FSMContext):`.
     *   Register for `ProfileSetup.ASK_ROLE` state.
     *   Prompt for industry (e.g., "Got it. In which industry do you primarily work or are interested in? (e.g., Fintech, SaaS, HealthTech)").
     *   Store the role: `await state.update_data(role=message.text.strip())`.
     *   Transition: `await state.set_state(ProfileSetup.ASK_INDUSTRY)`.
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INDUSTRY` state**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INDUSTRY` state**
     *   Define `async def process_ask_industry(message: types.Message, state: FSMContext):`.
     *   Register for `ProfileSetup.ASK_INDUSTRY` state.
     *   Prompt for skills (e.g., "What are some of your key skills? Please list them, separated by commas (e.g., Python, Project Management, UI/UX Design).").
     *   Store the industry: `await state.update_data(industry=message.text.strip())`.
     *   Transition: `await state.set_state(ProfileSetup.ASK_SKILLS)`.
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_SKILLS` state**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_SKILLS` state**
     *   Define `async def process_ask_skills(message: types.Message, state: FSMContext):`.
     *   Register for `ProfileSetup.ASK_SKILLS` state.
     *   Prompt for goals (e.g., "What are your current professional goals or things you're looking to achieve? (comma-separated, e.g., Find co-founder, Get investment, Learn new tech).").
@@ -34,7 +34,7 @@ This feature implements the conversational flow for user profile creation and ed
     *   Store skills: `await state.update_data(skills=skills)`.
     *   Transition: `await state.set_state(ProfileSetup.ASK_GOALS)`.
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_GOALS` state**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_GOALS` state**
     *   Define `async def process_ask_goals(message: types.Message, state: FSMContext):`.
     *   Register for `ProfileSetup.ASK_GOALS` state.
     *   Prompt for interests (e.g., "And finally, what are some of your professional interests? (comma-separated, e.g., AI, Blockchain, Remote Work).").
@@ -42,7 +42,7 @@ This feature implements the conversational flow for user profile creation and ed
     *   Store goals: `await state.update_data(goals=goals)`.
     *   Transition: `await state.set_state(ProfileSetup.ASK_INTERESTS)`.
 
-- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INTERESTS` state (Final Step)**
+- [x] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INTERESTS` state (Final Step)**
     *   Define `async def process_ask_interests(message: types.Message, state: FSMContext, api_client: APIClient):`.
     *   Register for `ProfileSetup.ASK_INTERESTS` state.
     *   Parse interests: `interests = [i.strip() for i in message.text.split(',') if i.strip()]`.
@@ -55,7 +55,7 @@ This feature implements the conversational flow for user profile creation and ed
         *   On error (`APIClientError`): Send an error message (e.g., "Sorry, there was an issue updating your profile. Please try again.").
     *   Clear the state: `await state.clear()`.
 
-- [ ] **FEAT: Implement callback query handler for "Edit Profile" button**
+- [x] **FEAT: Implement callback query handler for "Edit Profile" button**
     *   Define `async def handle_edit_profile_callback(callback_query: types.CallbackQuery, state: FSMContext):`.
     *   Register this handler for callback data `"edit_profile"` (or as defined in `edit_profile_keyboard`).
     *   Answer the callback query: `await callback_query.answer()`.
@@ -64,7 +64,7 @@ This feature implements the conversational flow for user profile creation and ed
     *   Send the first question for profile setup (e.g., "What is your name/preferred display name? If unchanged, just send your current one.").
     *   (Optional: Pre-fill FSMContext with existing data if available, so users see current values and can edit, but this is more complex for MVP).
 
-- [ ] **FEAT: Implement a `/cancel` command handler for FSM**
+- [x] **FEAT: Implement a `/cancel` command handler for FSM**
     *   Define `async def handle_cancel_fsm(message: types.Message, state: FSMContext):`.
     *   Register for `Command("cancel")` and for `StateFilter("*")` (to be active in any state).
     *   If `await state.get_state()` is not `None`:
@@ -73,10 +73,10 @@ This feature implements the conversational flow for user profile creation and ed
         *   Show main menu keyboard.
     *   Else (if not in a state): Send a message "You are not in any active process."
 
-- [ ] **REFACTOR: Register FSM and callback handlers in `user_handlers.py` router**
+- [x] **REFACTOR: Register FSM and callback handlers in `user_handlers.py` router**
     *   Attach all new FSM state handlers and the "Edit Profile" callback handler to the `user_router`.
 
-- [ ] **TEST: Unit tests for each FSM state handler**
+- [x] **TEST: Unit tests for each FSM state handler**
     *   For each `process_ask_<field>` handler in `tests/bot/handlers/test_user_handlers.py`:
         *   Mock `FSMContext` (`update_data`, `set_state`, `get_data`).
         *   Mock `APIClient` for the final state handler.
@@ -85,13 +85,13 @@ This feature implements the conversational flow for user profile creation and ed
         *   Verify transition to the correct next state.
         *   For the final state, verify `api_client.update_user_profile` is called with compiled data and state is cleared.
 
-- [ ] **TEST: Unit test for "Edit Profile" callback query handler**
+- [x] **TEST: Unit test for "Edit Profile" callback query handler**
     *   Mock `FSMContext.set_state`.
     *   Verify `callback_query.answer()` is called.
     *   Verify the initial message and first profile question are sent.
     *   Verify `state.set_state` is called with the initial `ProfileSetup` state.
 
-- [ ] **TEST: Unit test for `/cancel` FSM command handler**
+- [x] **TEST: Unit test for `/cancel` FSM command handler**
     *   Test when in a state: mock `FSMContext.get_state` to return a state, mock `clear`. Verify message and state clearing.
     *   Test when not in a state: mock `FSMContext.get_state` to return `None`. Verify appropriate message.
 

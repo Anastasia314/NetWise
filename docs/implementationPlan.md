@@ -113,9 +113,9 @@
         *   `- [x]` Transition to next state.
         *   `- [x]` On final state, compile data and call `api_client.update_user_profile`.
     *   `- [x]` Implement callback query handler for "Edit Profile" to restart FSM.
-*   `- [ ]` **Testing:**
-    *   `- [ ]` Manual E2E testing of user onboarding and profile view/edit flow.
-    *   `- [ ]` Unit tests for bot handlers (mocking API client and Telegram objects).
+*   `- [x]` **Testing:**
+    *   `- [x]` Manual E2E testing of user onboarding and profile view/edit flow.
+    *   `- [x]` Unit tests for bot handlers (mocking API client and Telegram objects).
 
 ---
 
