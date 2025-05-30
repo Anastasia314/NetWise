@@ -40,7 +40,7 @@ async def main():
         
         # Start polling
         logger.info("Starting polling...")
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
     except Exception as e:
         logger.error(f"Error occurred: {e}", exc_info=True)
         raise

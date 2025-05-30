@@ -52,7 +52,7 @@ class APIClient:
         }
         
         try:
-            response = await self.client.post("/users/users", json=payload)
+            response = await self.client.post("/api/users", json=payload)
             response.raise_for_status()
             return response.json()
         except httpx.RequestError as e:
