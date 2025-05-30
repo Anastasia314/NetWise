@@ -53,9 +53,9 @@ class APIClient:
         
         try:
             response = await self.client.post(
-                "/api/v1/users/users",
+                "/api/v1/users",
                 json=payload,
-                headers={"Authorization": f"Bearer {telegram_id}"}
+                headers={"X-Telegram-ID": str(telegram_id)}
             )
             response.raise_for_status()
             return response.json()
@@ -82,8 +82,8 @@ class APIClient:
         """
         try:
             response = await self.client.get(
-                f"/api/v1/users/users/me",
-                headers={"Authorization": f"Bearer {telegram_id}"}
+                f"/api/v1/users/me",
+                headers={"X-Telegram-ID": str(telegram_id)}
             )
             response.raise_for_status()
             return response.json()
@@ -111,9 +111,9 @@ class APIClient:
         """
         try:
             response = await self.client.patch(
-                f"/api/v1/users/users/me",
+                f"/api/v1/users/me",
                 json=profile_data,
-                headers={"Authorization": f"Bearer {telegram_id}"}
+                headers={"X-Telegram-ID": str(telegram_id)}
             )
             response.raise_for_status()
             return response.json()
