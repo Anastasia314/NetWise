@@ -4,7 +4,7 @@ API client for making HTTP requests to external services.
 
 import aiohttp
 from typing import Optional, Dict, Any
-from utils.exceptions import APIClientError, APIClientResponseError
+from ..utils.exceptions import APIClientError, APIClientResponseError
 
 class APIClient:
     def __init__(self, base_url: str):
