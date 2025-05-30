@@ -1,96 +1,114 @@
-# **Current Feature Plan: Bot Core User Command Handlers (Start & Profile)**
+# **Current Feature Plan: Bot Profile Setup FSM & Edit Handlers**
 
 **Feature Description:**
-This feature implements the initial user interaction points: the `/start` command for onboarding and greeting, and the `/profile` command for users to view their current profile information. The `/start` command will attempt to onboard the user via the API client and, based on their profile status, either initiate the profile setup flow or show the main menu. The `/profile` command will fetch and display the user's profile and offer an option to edit it.
+This feature implements the conversational flow for user profile creation and editing using aiogram's Finite State Machine (FSM). It includes handlers for each state defined in `ProfileSetup` (e.g., `ASK_NAME`, `ASK_ROLE`, etc.) to prompt the user for information, store their responses, and transition them to the next step. Finally, it covers collecting all data and submitting it to the backend API. It also includes the callback query handler for the "Edit Profile" button to re-initiate this FSM flow.
 
 **Tasks:**
 
-- [x] **FEAT: Create `bot/handlers` directory and `user_handlers.py` file**
-    *   Create the directory `bot/handlers/` if it doesn't exist.
-    *   Add an `__init__.py` file to `bot/handlers/` to mark it as a package.
-    *   Create a new Python file `bot/handlers/user_handlers.py`.
-    *   Import necessary `aiogram` modules (`Router`, `types`, `FSMContext`, `CommandStart`, `Command`).
-    *   Import `APIClient` (or its access mechanism), `ProfileSetup` states, keyboard builders, and `format_user_profile_message`.
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_NAME` state**
+    *   In `bot/handlers/user_handlers.py`, define `async def process_ask_name(message: types.Message, state: FSMContext):`.
+    *   Register this handler for messages received when in the `ProfileSetup.ASK_NAME` state.
+    *   Prompt the user for their role (e.g., "Great, {name}! Now, what's your current role or primary function? (e.g., Founder, Software Engineer, Product Manager)").
+    *   Store the received name: `await state.update_data(name=message.text.strip())`.
+    *   Transition to the next state: `await state.set_state(ProfileSetup.ASK_ROLE)`.
 
-- [x] **FEAT: Implement `/start` command handler in `user_handlers.py`**
-    *   Define an `async def handle_start(message: types.Message, state: FSMContext, api_client: APIClient):` (adjust `api_client` injection as per DI setup).
-    *   Register this handler for the `CommandStart()` filter.
-    *   Inside the handler:
-        *   Extract `telegram_id`, `name` (first_name), and `username` from `message.from_user`.
-        *   Call `api_client.onboard_user(telegram_id, name, username)`.
-        *   Handle potential `APIClientError` exceptions gracefully (e.g., log error, inform user of a temporary issue).
-        *   If onboarding is successful, fetch the user's profile using `api_client.get_user_profile(telegram_id)`.
-        *   Check if the profile is complete (e.g., essential fields like `role`, `industry`, `skills` are filled).
-            *   If incomplete (or new user):
-                *   Send a welcome message explaining the need to set up a profile.
-                *   Set the state to the first step of `ProfileSetup` FSM (e.g., `await state.set_state(ProfileSetup.ASK_NAME)`).
-                *   Send the first question for profile setup (e.g., "What is your name/preferred display name?").
-            *   If complete:
-                *   Send a welcome back message.
-                *   Display the main menu using `main_menu_keyboard()`.
-                *   Clear any previous state: `await state.clear()`.
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_ROLE` state**
+    *   Define `async def process_ask_role(message: types.Message, state: FSMContext):`.
+    *   Register for `ProfileSetup.ASK_ROLE` state.
+    *   Prompt for industry (e.g., "Got it. In which industry do you primarily work or are interested in? (e.g., Fintech, SaaS, HealthTech)").
+    *   Store the role: `await state.update_data(role=message.text.strip())`.
+    *   Transition: `await state.set_state(ProfileSetup.ASK_INDUSTRY)`.
 
-- [x] **FEAT: Implement `/profile` command handler in `user_handlers.py`**
-    *   Define an `async def handle_profile(message: types.Message, api_client: APIClient):`.
-    *   Register this handler for the `Command("profile")` filter.
-    *   Inside the handler:
-        *   Get `telegram_id` from `message.from_user`.
-        *   Call `api_client.get_user_profile(telegram_id)`.
-        *   Handle potential `APIClientError` (e.g., user not found, API down).
-        *   If successful:
-            *   Format the profile data using `format_user_profile_message(profile_data)`.
-            *   Send the formatted profile message to the user.
-            *   Include the `edit_profile_keyboard()` as `reply_markup`.
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INDUSTRY` state**
+    *   Define `async def process_ask_industry(message: types.Message, state: FSMContext):`.
+    *   Register for `ProfileSetup.ASK_INDUSTRY` state.
+    *   Prompt for skills (e.g., "What are some of your key skills? Please list them, separated by commas (e.g., Python, Project Management, UI/UX Design).").
+    *   Store the industry: `await state.update_data(industry=message.text.strip())`.
+    *   Transition: `await state.set_state(ProfileSetup.ASK_SKILLS)`.
 
-- [x] **REFACTOR: Register `user_handlers` router in `bot/main.py`**
-    *   In `bot/handlers/user_handlers.py`, create a `Router` instance (e.g., `user_router = Router()`).
-    *   Attach the `handle_start` and `handle_profile` handlers to this `user_router`.
-    *   In `bot/main.py` (or where the main dispatcher is configured), import `user_router` and include it in the main dispatcher (e.g., `dp.include_router(user_router)`).
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_SKILLS` state**
+    *   Define `async def process_ask_skills(message: types.Message, state: FSMContext):`.
+    *   Register for `ProfileSetup.ASK_SKILLS` state.
+    *   Prompt for goals (e.g., "What are your current professional goals or things you're looking to achieve? (comma-separated, e.g., Find co-founder, Get investment, Learn new tech).").
+    *   Parse skills (split by comma, strip whitespace): `skills = [s.strip() for s in message.text.split(',') if s.strip()]`.
+    *   Store skills: `await state.update_data(skills=skills)`.
+    *   Transition: `await state.set_state(ProfileSetup.ASK_GOALS)`.
 
-- [x] **TEST: Unit test for `/start` handler - new user/incomplete profile**
-    *   Create `tests/bot/handlers/test_user_handlers.py`.
-    *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return an incomplete profile).
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_GOALS` state**
+    *   Define `async def process_ask_goals(message: types.Message, state: FSMContext):`.
+    *   Register for `ProfileSetup.ASK_GOALS` state.
+    *   Prompt for interests (e.g., "And finally, what are some of your professional interests? (comma-separated, e.g., AI, Blockchain, Remote Work).").
+    *   Parse goals: `goals = [g.strip() for g in message.text.split(',') if g.strip()]`.
+    *   Store goals: `await state.update_data(goals=goals)`.
+    *   Transition: `await state.set_state(ProfileSetup.ASK_INTERESTS)`.
+
+- [ ] **FEAT: Implement FSM handler for `ProfileSetup.ASK_INTERESTS` state (Final Step)**
+    *   Define `async def process_ask_interests(message: types.Message, state: FSMContext, api_client: APIClient):`.
+    *   Register for `ProfileSetup.ASK_INTERESTS` state.
+    *   Parse interests: `interests = [i.strip() for i in message.text.split(',') if i.strip()]`.
+    *   Store interests: `await state.update_data(interests=interests)`.
+    *   Retrieve all collected data: `user_data = await state.get_data()`.
+    *   Construct `profile_data` payload suitable for `api_client.update_user_profile` (map FSM data keys to API model keys if different).
+    *   Call `api_client.update_user_profile(telegram_id=message.from_user.id, profile_data=profile_data)`.
+    *   Handle API response:
+        *   On success: Send a confirmation message (e.g., "Your profile has been updated!"). Display the main menu keyboard.
+        *   On error (`APIClientError`): Send an error message (e.g., "Sorry, there was an issue updating your profile. Please try again.").
+    *   Clear the state: `await state.clear()`.
+
+- [ ] **FEAT: Implement callback query handler for "Edit Profile" button**
+    *   Define `async def handle_edit_profile_callback(callback_query: types.CallbackQuery, state: FSMContext):`.
+    *   Register this handler for callback data `"edit_profile"` (or as defined in `edit_profile_keyboard`).
+    *   Answer the callback query: `await callback_query.answer()`.
+    *   Send a message indicating profile editing is starting (e.g., "Let's update your profile.").
+    *   Set the state to the first step of `ProfileSetup` FSM: `await state.set_state(ProfileSetup.ASK_NAME)`.
+    *   Send the first question for profile setup (e.g., "What is your name/preferred display name? If unchanged, just send your current one.").
+    *   (Optional: Pre-fill FSMContext with existing data if available, so users see current values and can edit, but this is more complex for MVP).
+
+- [ ] **FEAT: Implement a `/cancel` command handler for FSM**
+    *   Define `async def handle_cancel_fsm(message: types.Message, state: FSMContext):`.
+    *   Register for `Command("cancel")` and for `StateFilter("*")` (to be active in any state).
+    *   If `await state.get_state()` is not `None`:
+        *   Send a message: "Profile setup cancelled."
+        *   Clear the state: `await state.clear()`.
+        *   Show main menu keyboard.
+    *   Else (if not in a state): Send a message "You are not in any active process."
+
+- [ ] **REFACTOR: Register FSM and callback handlers in `user_handlers.py` router**
+    *   Attach all new FSM state handlers and the "Edit Profile" callback handler to the `user_router`.
+
+- [ ] **TEST: Unit tests for each FSM state handler**
+    *   For each `process_ask_<field>` handler in `tests/bot/handlers/test_user_handlers.py`:
+        *   Mock `FSMContext` (`update_data`, `set_state`, `get_data`).
+        *   Mock `APIClient` for the final state handler.
+        *   Verify the correct prompt message is sent.
+        *   Verify data is correctly stored in `FSMContext`.
+        *   Verify transition to the correct next state.
+        *   For the final state, verify `api_client.update_user_profile` is called with compiled data and state is cleared.
+
+- [ ] **TEST: Unit test for "Edit Profile" callback query handler**
     *   Mock `FSMContext.set_state`.
-    *   Verify that `onboard_user` and `get_user_profile` are called.
-    *   Verify the correct welcome message is sent.
+    *   Verify `callback_query.answer()` is called.
+    *   Verify the initial message and first profile question are sent.
     *   Verify `state.set_state` is called with the initial `ProfileSetup` state.
-    *   Verify the first profile question is sent.
 
-- [x] **TEST: Unit test for `/start` handler - existing user/complete profile**
-    *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return a complete profile).
-    *   Mock `FSMContext.clear`.
-    *   Verify `onboard_user` and `get_user_profile` are called.
-    *   Verify the welcome back message is sent.
-    *   Verify `main_menu_keyboard` is used.
-    *   Verify `state.clear` is called.
-
-- [x] **TEST: Unit test for `/profile` handler - successful profile fetch**
-    *   Mock `APIClient.get_user_profile` to return valid profile data.
-    *   Mock `format_user_profile_message`.
-    *   Mock `edit_profile_keyboard`.
-    *   Verify `get_user_profile` is called.
-    *   Verify `format_user_profile_message` is called with the profile data.
-    *   Verify the formatted message is sent with the `edit_profile_keyboard`.
-
-- [x] **TEST: Unit test for `/profile` handler - API error**
-    *   Mock `APIClient.get_user_profile` to raise an `APIClientError`.
-    *   Verify an appropriate error message is sent to the user.
+- [ ] **TEST: Unit test for `/cancel` FSM command handler**
+    *   Test when in a state: mock `FSMContext.get_state` to return a state, mock `clear`. Verify message and state clearing.
+    *   Test when not in a state: mock `FSMContext.get_state` to return `None`. Verify appropriate message.
 
 **Files Involved:**
-*   `bot/handlers/__init__.py` (New or existing)
-*   `bot/handlers/user_handlers.py` (New file)
-*   `bot/main.py` (Or relevant bot initialization module, for router registration)
-*   `tests/bot/handlers/test_user_handlers.py` (New file)
-*   (Uses existing: `bot/services/api_client.py`, `bot/states/user_states.py`, `bot/keyboards/inline_keyboards.py`, `bot/keyboards/reply_keyboards.py`, `bot/utils/formatters.py`)
+*   `bot/handlers/user_handlers.py` (Major additions)
+*   `tests/bot/handlers/test_user_handlers.py` (Major additions)
+*   (Uses existing: `bot/services/api_client.py`, `bot/states/user_states.py`, `bot/keyboards/reply_keyboards.py`)
 
 **External Dependencies:**
-*   `aiogram`: Core for handlers, types, FSMContext, Command filters.
+*   `aiogram`: For FSM, `CallbackQuery`, `StateFilter`.
 *   `pytest`, `pytest-asyncio`: For testing.
-*   (Relies on `APIClient` which uses `httpx` and `respx` for its tests).
 
 **Notes:**
-*   The "profile completeness check" in the `/start` handler needs a clear definition. For MVP, it might be checking if `role`, `industry`, and at least one `skill` are present.
-*   Error messages to the user should be user-friendly and avoid exposing technical details.
-*   The dependency injection for `APIClient` (and potentially other services like database access if not fully encapsulated by `APIClient`) needs to be consistent. `aiogram` middleware or passing context through the dispatcher are common ways. For simplicity in this plan, it's shown as a parameter.
-*   This plan defers the implementation of the FSM state handlers for profile setup and the "Edit Profile" callback query handler to the next feature plan.
+*   The prompts for each piece of information should be clear and guide the user.
+*   Consider adding a "skip" option for non-essential profile fields during the FSM flow. This would involve adding "skip" buttons to keyboards and handlers for their callback data, which would transition to the next state without storing data for the current field. (This is an enhancement beyond the current task scope but good to keep in mind).
+*   Error handling for API calls in the final step is crucial.
+*   The `/cancel` command provides an essential escape hatch for users from the FSM flow.
+*   The text for prompts can be moved to a separate constants or localization file later for better maintainability.
+*   Initial implementation of "Edit Profile" will restart the flow from `ASK_NAME`. A more advanced version might fetch existing data and allow editing field by field, or show current values in prompts. For MVP, a full re-run is simpler.
 ```
