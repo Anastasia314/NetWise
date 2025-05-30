@@ -5,12 +5,12 @@ This feature involves creating a utility function to format user profile data in
 
 **Tasks:**
 
-- [ ] **FEAT: Create `bot/utils` directory and `formatters.py` file**
+- [x] **FEAT: Create `bot/utils` directory and `formatters.py` file**
     *   Create the directory `bot/utils/` if it doesn't already exist.
     *   Add an `__init__.py` file to `bot/utils/` to mark it as a package.
     *   Create a new Python file `bot/utils/formatters.py`.
 
-- [ ] **FEAT: Implement `format_user_profile_message(profile_data: dict) -> str` function**
+- [x] **FEAT: Implement `format_user_profile_message(profile_data: dict) -> str` function**
     *   Define the function `format_user_profile_message(profile_data: dict) -> str` in `bot/utils/formatters.py`.
     *   The `profile_data` dictionary is expected to match the structure of `UserResponse` from the backend API (containing fields like `name`, `role`, `industry`, `skills`, `goals`, `interests`, `social_points`, etc.).
     *   Construct a multi-line string. Use f-strings or `str.join()` for readability.
@@ -40,7 +40,7 @@ This feature involves creating a utility function to format user profile data in
     *   Return the formatted string.
     *   Add a docstring explaining the function's purpose, input, and output.
 
-- [ ] **TEST: Add unit tests for `format_user_profile_message`**
+- [x] **TEST: Add unit tests for `format_user_profile_message`**
     *   Create `tests/bot/utils/test_formatters.py`.
     *   Write tests to verify:
         *   Correct formatting with all profile fields present.

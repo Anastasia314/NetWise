@@ -96,8 +96,8 @@
 *   `- [x]` **Bot: Keyboards (`bot/keyboards/`)**
     *   `- [x]` `inline_keyboards.py`: `edit_profile_keyboard()`, `skip_question_keyboard()`.
     *   `- [x]` `reply_keyboards.py`: `main_menu_keyboard()`.
-*   `- [ ]` **Bot: Formatters (`bot/utils/formatters.py`)**
-    *   `- [ ]` `format_user_profile_message(profile_data)`.
+*   `- [x]` **Bot: Formatters (`bot/utils/formatters.py`)**
+    *   `- [x]` `format_user_profile_message(profile_data)`.
 *   `- [ ]` **Bot: User Handlers (`bot/handlers/user_handlers.py`)**
     *   `- [ ]` Update `/start` handler in `common_handlers.py`:
         *   `- [ ]` Call `api_client.onboard_user`.
