@@ -27,10 +27,10 @@
     *   `- [x]` Create `netwise_bot/bot_instance.py`.
 *   **Task 0.4: Initial Supabase Setup**
     *   `- [x]` Create Supabase project.
-    *   `- [ ]` Design and create initial DB tables (start with `users` table).
-        *   `- [ ]` Define `users` table schema (columns, types, constraints).
-        *   `- [ ]` Implement `users` table in Supabase Studio.
-    *   `- [ ]` Get Supabase URL and Service Role Key for `.env`.
+    *   `- [x]` Design and create initial DB tables (start with `users` table).
+        *   `- [x]` Define `users` table schema (columns, types, constraints).
+        *   `- [x]` Implement `users` table in Supabase Studio.
+    *   `- [x]` Get Supabase URL and Service Role Key for `.env`.
 *   **Task 0.5: Basic Bot Connection & "Hello World"**
     *   `- [x]` **Implement `netwise_bot/config.py`:** Load environment variables.
     *   `- [x]` **Implement `netwise_bot/bot_instance.py`:** Initialize `Bot` and `Dispatcher`.
@@ -39,7 +39,7 @@
         *   `- [x]` Initialize bot & dispatcher.
         *   `- [x]` Create a simple `/start` handler in `main.py` (or a new `handlers/common.py`) that replies "Hello NetWise!"
         *   `- [x]` Start polling.
-    *   `- [ ]` **Test:** Run `main.py` and send `/start` to your bot in Telegram.
+    *   `- [x]` **Test:** Run `main.py` and send `/start` to your bot in Telegram.
         *   *Checkpoint:* Bot responds "Hello NetWise!".
 *   **Task 0.6: Logging Setup**
     *   `- [x]` Configure basic logging in `main.py` (e.g., to console, `INFO` level).
@@ -49,57 +49,60 @@
 ### **Phase 1: Core User Management & Profile (3-5 days)**
 
 *   **Task 1.1: User Service - Basic CRUD**
-    *   `- [ ]` Create `netwise_bot/services/supabase_client.py`.
-        *   `- [ ]` Implement `__init__` to initialize Supabase client.
-        *   `- [ ]` Implement `fetch_user_by_telegram_id(telegram_id)` function.
-        *   `- [ ]` Implement `create_user(telegram_id, name=None, defaults=...)` function.
-    *   `- [ ]` Create `netwise_bot/services/user_service.py`.
-        *   `- [ ]` Implement `get_or_create_user(telegram_id, name=None)` using `supabase_client`.
+    *   `- [x]` Create `netwise_bot/services/supabase_client.py`.
+        *   `- [x]` Implement `__init__` to initialize Supabase client.
+        *   `- [x]` Implement `fetch_user_by_telegram_id(telegram_id)` function.
+        *   `- [x]` Implement `create_user(telegram_id, name=None, defaults=...)` function.
+    *   `- [x]` Create `netwise_bot/services/user_service.py`.
+        *   `- [x]` Implement `get_or_create_user(telegram_id, name=None)` using `supabase_client`.
 *   **Task 1.2: `/start` Handler Enhancement**
-    *   `- [ ]` Create `netwise_bot/handlers/common.py`.
-    *   `- [ ]` Move `/start` logic to `handlers/common.py`.
-    *   `- [ ]` Modify `/start` handler to use `user_service.get_or_create_user()`.
-    *   `- [ ]` Differentiate welcome message for new vs. existing users.
-    *   `- [ ]` Create `netwise_bot/keyboards/common_keyboards.py`.
-    *   `- [ ]` Implement `get_initial_setup_keyboard()` (e.g., "Create Profile" button for new users).
-    *   `- [ ]` **Test:** `/start` command behavior for new and existing users.
+    *   `- [x]` Create `netwise_bot/handlers/common.py`.
+    *   `- [x]` Move `/start` logic to `handlers/common.py`.
+    *   `- [x]` Modify `/start` handler to use `user_service.get_or_create_user()`.
+    *   `- [x]` Differentiate welcome message for new vs. existing users.
+    *   `- [x]` Create `netwise_bot/keyboards/common_keyboards.py`.
+    *   `- [x]` Implement `get_initial_setup_keyboard()` (e.g., "Create Profile" button for new users).
+    *   `- [x]` **Test:** `/start` command behavior for new and existing users.
 *   **Task 1.3: Profile Creation Flow - FSM & Handlers**
-    *   `- [ ]` Create `netwise_bot/states/profile_states.py` with `ProfileStates(StatesGroup)`.
-        *   `- [ ]` Define states: `name`, `role`, `industry`, `skills`, `goals`, `interests`.
-    *   `- [ ]` Create `netwise_bot/handlers/profile.py`.
-    *   `- [ ]` Implement handler to initiate profile creation (e.g., callback from "Create Profile" button).
-        *   `- [ ]` Set initial state (`ProfileStates.name`).
-        *   `- [ ]` Ask user for their name.
-    *   `- [ ]` Implement message handlers for each profile field (name, role, etc.):
-        *   `- [ ]` Validate input (basic validation for now).
-        *   `- [ ]` Store data in FSM context (`state.update_data(...)`).
-        *   `- [ ]` Transition to the next state (`state.set_state(...)`).
-        *   `- [ ]` Ask for the next piece of information.
+    *   `- [x]` Create `netwise_bot/states/profile_states.py` with `ProfileStates(StatesGroup)`.
+        *   `- [x]` Define states: `name`, `role`, `industry`, `skills`, `goals`, `interests`.
+    *   `- [x]` Create `netwise_bot/handlers/profile.py`.
+    *   `- [x]` Implement handler to initiate profile creation (e.g., callback from "Create Profile" button).
+        *   `- [x]` Set initial state (`ProfileStates.name`).
+        *   `- [x]` Ask user for their name.
+    *   `- [x]` Implement message handlers for each profile field (name, role, etc.):
+        *   `- [x]` Validate input (basic validation for now).
+        *   `- [x]` Store data in FSM context (`state.update_data(...)`).
+        *   `- [x]` Transition to the next state (`state.set_state(...)`).
+        *   `- [x]` Ask for the next piece of information.
 *   **Task 1.4: Profile Service - Update & Get**
-    *   `- [ ]` **`supabase_client.py`:**
-        *   `- [ ]` Implement `update_user_profile(telegram_id, profile_data)`.
-        *   `- [ ]` Implement `fetch_user_profile(telegram_id)`.
-    *   `- [ ]` **`user_service.py`:**
-        *   `- [ ]` Implement `update_profile(telegram_id, profile_data)`.
-        *   `- [ ]` Implement `get_profile(telegram_id)`.
+    *   `- [x]` **`supabase_client.py`:**
+        *   `- [x]` Implement `update_user_profile(telegram_id, profile_data)`.
+        *   `- [x]` Implement `fetch_user_profile(telegram_id)`.
+        *   `- [x]` Add error handling and validation.
+    *   `- [x]` **`user_service.py`:**
+        *   `- [x]` Implement `update_profile(telegram_id, profile_data)`.
+        *   `- [x]` Implement `get_profile(telegram_id)`.
+        *   `- [x]` Add profile data validation.
+        *   `- [x]` Add error handling and logging.
 *   **Task 1.5: Completing Profile Creation & `/myprofile`**
-    *   `- [ ]` **`handlers/profile.py`:**
-        *   `- [ ]` Implement handler for the last profile field.
-        *   `- [ ]` On completion, retrieve all data from FSM context.
-        *   `- [ ]` Call `user_service.update_profile()`.
-        *   `- [ ]` Send confirmation message.
-        *   `- [ ]` Finish FSM state (`state.clear()`).
-    *   `- [ ]` Implement `/myprofile` command in `handlers/profile.py`:
-        *   `- [ ]` Call `user_service.get_profile()`.
-        *   `- [ ]` Format and display profile information.
-        *   `- [ ]` (Optional) Add "Edit Profile" button.
-    *   `- [ ]` **Test:** Full profile creation flow and `/myprofile` command.
+    *   `- [x]` **`handlers/profile.py`:**
+        *   `- [x]` Implement handler for the last profile field.
+        *   `- [x]` On completion, retrieve all data from FSM context.
+        *   `- [x]` Call `user_service.update_profile()`.
+        *   `- [x]` Send confirmation message.
+        *   `- [x]` Finish FSM state (`state.clear()`).
+    *   `- [x]` Implement `/myprofile` command in `handlers/profile.py`:
+        *   `- [x]` Call `user_service.get_profile()`.
+        *   `- [x]` Format and display profile information.
+        *   `- [x]` Add "Edit Profile" button.
+    *   `- [x]` **Test:** Full profile creation flow and `/myprofile` command.
         *   *Checkpoint:* User can create a profile, data is saved to Supabase, and `/myprofile` shows it.
 *   **Task 1.6: User Activity Tracking (Basic)**
-    *   `- [ ]` **`users` table (Supabase):** Add `last_active_at` (Timestamp) and `is_active_in_search` (Boolean, default: true).
-    *   `- [ ]` **`supabase_client.py`:** Implement `update_user_last_active(telegram_id)`.
-    *   `- [ ]` **`user_service.py`:** Implement `update_user_activity(telegram_id)`.
-    *   `- [ ]` Integrate `update_user_activity` call in relevant handlers (e.g., on `/start`, after sending any message). Consider a middleware for this.
+    *   `- [x]` **`users` table (Supabase):** Add `last_active_at` (Timestamp) and `is_active_in_search` (Boolean, default: true).
+    *   `- [x]` **`supabase_client.py`:** Implement `update_user_last_active(telegram_id)`.
+    *   `- [x]` **`user_service.py`:** Implement `update_user_activity(telegram_id)`.
+    *   `- [x]` Integrate `update_user_activity` call in relevant handlers (e.g., on `/start`, after sending any message). Consider a middleware for this.
 
 ---
 
