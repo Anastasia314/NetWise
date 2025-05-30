@@ -5,14 +5,14 @@ This feature implements the initial user interaction points: the `/start` comman
 
 **Tasks:**
 
-- [ ] **FEAT: Create `bot/handlers` directory and `user_handlers.py` file**
+- [x] **FEAT: Create `bot/handlers` directory and `user_handlers.py` file**
     *   Create the directory `bot/handlers/` if it doesn't exist.
     *   Add an `__init__.py` file to `bot/handlers/` to mark it as a package.
     *   Create a new Python file `bot/handlers/user_handlers.py`.
     *   Import necessary `aiogram` modules (`Router`, `types`, `FSMContext`, `CommandStart`, `Command`).
     *   Import `APIClient` (or its access mechanism), `ProfileSetup` states, keyboard builders, and `format_user_profile_message`.
 
-- [ ] **FEAT: Implement `/start` command handler in `user_handlers.py`**
+- [x] **FEAT: Implement `/start` command handler in `user_handlers.py`**
     *   Define an `async def handle_start(message: types.Message, state: FSMContext, api_client: APIClient):` (adjust `api_client` injection as per DI setup).
     *   Register this handler for the `CommandStart()` filter.
     *   Inside the handler:
@@ -30,7 +30,7 @@ This feature implements the initial user interaction points: the `/start` comman
                 *   Display the main menu using `main_menu_keyboard()`.
                 *   Clear any previous state: `await state.clear()`.
 
-- [ ] **FEAT: Implement `/profile` command handler in `user_handlers.py`**
+- [x] **FEAT: Implement `/profile` command handler in `user_handlers.py`**
     *   Define an `async def handle_profile(message: types.Message, api_client: APIClient):`.
     *   Register this handler for the `Command("profile")` filter.
     *   Inside the handler:
@@ -42,12 +42,12 @@ This feature implements the initial user interaction points: the `/start` comman
             *   Send the formatted profile message to the user.
             *   Include the `edit_profile_keyboard()` as `reply_markup`.
 
-- [ ] **REFACTOR: Register `user_handlers` router in `bot/main.py`**
+- [x] **REFACTOR: Register `user_handlers` router in `bot/main.py`**
     *   In `bot/handlers/user_handlers.py`, create a `Router` instance (e.g., `user_router = Router()`).
     *   Attach the `handle_start` and `handle_profile` handlers to this `user_router`.
     *   In `bot/main.py` (or where the main dispatcher is configured), import `user_router` and include it in the main dispatcher (e.g., `dp.include_router(user_router)`).
 
-- [ ] **TEST: Unit test for `/start` handler - new user/incomplete profile**
+- [x] **TEST: Unit test for `/start` handler - new user/incomplete profile**
     *   Create `tests/bot/handlers/test_user_handlers.py`.
     *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return an incomplete profile).
     *   Mock `FSMContext.set_state`.
@@ -56,7 +56,7 @@ This feature implements the initial user interaction points: the `/start` comman
     *   Verify `state.set_state` is called with the initial `ProfileSetup` state.
     *   Verify the first profile question is sent.
 
-- [ ] **TEST: Unit test for `/start` handler - existing user/complete profile**
+- [x] **TEST: Unit test for `/start` handler - existing user/complete profile**
     *   Mock `APIClient` methods (`onboard_user`, `get_user_profile` to return a complete profile).
     *   Mock `FSMContext.clear`.
     *   Verify `onboard_user` and `get_user_profile` are called.
@@ -64,7 +64,7 @@ This feature implements the initial user interaction points: the `/start` comman
     *   Verify `main_menu_keyboard` is used.
     *   Verify `state.clear` is called.
 
-- [ ] **TEST: Unit test for `/profile` handler - successful profile fetch**
+- [x] **TEST: Unit test for `/profile` handler - successful profile fetch**
     *   Mock `APIClient.get_user_profile` to return valid profile data.
     *   Mock `format_user_profile_message`.
     *   Mock `edit_profile_keyboard`.
@@ -72,7 +72,7 @@ This feature implements the initial user interaction points: the `/start` comman
     *   Verify `format_user_profile_message` is called with the profile data.
     *   Verify the formatted message is sent with the `edit_profile_keyboard`.
 
-- [ ] **TEST: Unit test for `/profile` handler - API error**
+- [x] **TEST: Unit test for `/profile` handler - API error**
     *   Mock `APIClient.get_user_profile` to raise an `APIClientError`.
     *   Verify an appropriate error message is sent to the user.
 

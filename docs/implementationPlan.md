@@ -98,21 +98,21 @@
     *   `- [x]` `reply_keyboards.py`: `main_menu_keyboard()`.
 *   `- [x]` **Bot: Formatters (`bot/utils/formatters.py`)**
     *   `- [x]` `format_user_profile_message(profile_data)`.
-*   `- [ ]` **Bot: User Handlers (`bot/handlers/user_handlers.py`)**
-    *   `- [ ]` Update `/start` handler in `common_handlers.py`:
-        *   `- [ ]` Call `api_client.onboard_user`.
-        *   `- [ ]` If new user or profile incomplete, initiate profile setup FSM.
-        *   `- [ ]` Else, show main menu.
-    *   `- [ ]` Implement `/profile` command:
-        *   `- [ ]` Fetch profile via `api_client`.
-        *   `- [ ]` Display profile using `format_user_profile_message`.
-        *   `- [ ]` Offer "Edit Profile" button.
-    *   `- [ ]` Implement FSM handlers for each state in `ProfileSetup`:
-        *   `- [ ]` Ask question.
-        *   `- [ ]` Store answer in `FSMContext`.
-        *   `- [ ]` Transition to next state.
-        *   `- [ ]` On final state, compile data and call `api_client.update_user_profile`.
-    *   `- [ ]` Implement callback query handler for "Edit Profile" to restart FSM.
+*   `- [x]` **Bot: User Handlers (`bot/handlers/user_handlers.py`)**
+    *   `- [x]` Update `/start` handler in `common_handlers.py`:
+        *   `- [x]` Call `api_client.onboard_user`.
+        *   `- [x]` If new user or profile incomplete, initiate profile setup FSM.
+        *   `- [x]` Else, show main menu.
+    *   `- [x]` Implement `/profile` command:
+        *   `- [x]` Fetch profile via `api_client`.
+        *   `- [x]` Display profile using `format_user_profile_message`.
+        *   `- [x]` Offer "Edit Profile" button.
+    *   `- [x]` Implement FSM handlers for each state in `ProfileSetup`:
+        *   `- [x]` Ask question.
+        *   `- [x]` Store answer in `FSMContext`.
+        *   `- [x]` Transition to next state.
+        *   `- [x]` On final state, compile data and call `api_client.update_user_profile`.
+    *   `- [x]` Implement callback query handler for "Edit Profile" to restart FSM.
 *   `- [ ]` **Testing:**
     *   `- [ ]` Manual E2E testing of user onboarding and profile view/edit flow.
     *   `- [ ]` Unit tests for bot handlers (mocking API client and Telegram objects).
