@@ -5,22 +5,22 @@ This feature focuses on creating the user interface elements (keyboards) for the
 
 **Tasks:**
 
-- [ ] **FEAT: Create `bot/keyboards` directory**
+- [x] **FEAT: Create `bot/keyboards` directory**
     *   Create the directory `bot/keyboards/` if it doesn't exist.
     *   Add an `__init__.py` file to `bot/keyboards/` to mark it as a package.
 
-- [ ] **FEAT: Create `bot/keyboards/inline_keyboards.py` and basic structure**
+- [x] **FEAT: Create `bot/keyboards/inline_keyboards.py` and basic structure**
     *   Create a new Python file `bot/keyboards/inline_keyboards.py`.
     *   Import `InlineKeyboardMarkup` and `InlineKeyboardButton` from `aiogram.types`.
 
-- [ ] **FEAT: Implement `edit_profile_keyboard()` in `inline_keyboards.py`**
+- [x] **FEAT: Implement `edit_profile_keyboard()` in `inline_keyboards.py`**
     *   Define a function `def edit_profile_keyboard() -> InlineKeyboardMarkup:`.
     *   Create an `InlineKeyboardButton` with text like "✏️ Edit Profile" (or similar).
     *   Assign a `callback_data` to this button (e.g., `"edit_profile"`). This data will be used to identify the button press in callback query handlers.
     *   Return an `InlineKeyboardMarkup` containing this button.
     *   Add a docstring explaining the keyboard's purpose.
 
-- [ ] **FEAT: Implement `skip_question_keyboard()` in `inline_keyboards.py`**
+- [x] **FEAT: Implement `skip_question_keyboard()` in `inline_keyboards.py`**
     *   Define a function `def skip_question_keyboard(question_identifier: str) -> InlineKeyboardMarkup:`.
         *   The `question_identifier` could be used to form part of the callback data if different skip actions are needed, or a generic "skip" callback is fine for now.
     *   Create an `InlineKeyboardButton` with text like "➡️ Skip" or "Пропустить".
@@ -28,11 +28,11 @@ This feature focuses on creating the user interface elements (keyboards) for the
     *   Return an `InlineKeyboardMarkup` containing this button.
     *   Add a docstring explaining the keyboard's purpose.
 
-- [ ] **FEAT: Create `bot/keyboards/reply_keyboards.py` and basic structure**
+- [x] **FEAT: Create `bot/keyboards/reply_keyboards.py` and basic structure**
     *   Create a new Python file `bot/keyboards/reply_keyboards.py`.
     *   Import `ReplyKeyboardMarkup`, `KeyboardButton` from `aiogram.types`.
 
-- [ ] **FEAT: Implement `main_menu_keyboard()` in `reply_keyboards.py`**
+- [x] **FEAT: Implement `main_menu_keyboard()` in `reply_keyboards.py`**
     *   Define a function `def main_menu_keyboard() -> ReplyKeyboardMarkup:`.
     *   Create `KeyboardButton` instances for main menu options. Based on PRD/ADD, initial options might include:
         *   "👤 My Profile" (corresponds to `/profile` command)
@@ -45,7 +45,7 @@ This feature focuses on creating the user interface elements (keyboards) for the
     *   Return the `ReplyKeyboardMarkup`.
     *   Add a docstring explaining the keyboard's purpose.
 
-- [ ] **TEST: (Placeholder) Basic import and construction tests for keyboards**
+- [x] **TEST: (Placeholder) Basic import and construction tests for keyboards**
     *   Create `tests/bot/keyboards/test_inline_keyboards.py`.
     *   Add tests to call `edit_profile_keyboard()` and `skip_question_keyboard()` and verify they return `InlineKeyboardMarkup` instances with the expected number of buttons and callback data.
     *   Create `tests/bot/keyboards/test_reply_keyboards.py`.
