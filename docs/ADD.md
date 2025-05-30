@@ -1,20 +1,20 @@
 # **Architectural Design Document (ADD)**
 
-**Product Name:** NetWise  
-**Owner:** Anastasia314  
+**Product Name:** NetWise
+**Owner:** Anastasia314
 **Date:** 2025-05-28
 
-**Version:** 1.0 (MVP)
+**Version:** 1.0 (MVP - Simplified Telegram Bot Focus)
 
 ---
 
 ## 1. **Introduction**
 
 ### 1.1. Purpose
-This document outlines the architectural design for NetWise, an intelligent networking assistant. It details the system's components, their interactions, data models, technology stack, and deployment strategy for the Minimum Viable Product (MVP) focused on a Telegram bot. The architecture is designed to be scalable for future enhancements, including a Telegram Mini App and a full mobile application.
+This document outlines the architectural design for the NetWise Minimum Viable Product (MVP), an intelligent networking assistant delivered as a Telegram bot. It details the bot's internal structure, its interaction with the data store (Supabase), AI matching logic, technology stack, and deployment strategy. The architecture prioritizes simplicity and rapid development for the initial launch.
 
 ### 1.2. Scope
-The scope of this document covers the MVP features of NetWise:
+The scope of this document covers the MVP features of NetWise, implemented entirely within the Telegram Bot application:
 *   Telegram Bot interface for user interaction.
 *   User profile creation and management.
 *   Friend invitation system and personal connection graph (1st and 2nd degree).
@@ -25,337 +25,222 @@ The scope of this document covers the MVP features of NetWise:
 *   Trust scoring mechanism.
 *   User activity monitoring and management.
 
-Future features like the Telegram Mini App, mobile application, random-coffee recommendations, and advanced paid features are considered for extensibility but not detailed for MVP implementation.
+Future features like a Telegram Mini App are considered for extensibility but are outside the scope of this initial MVP architecture.
 
 ### 1.3. Definitions, Acronyms, and Abbreviations
 *   **PRD:** Product Requirements Document
 *   **ADD:** Architectural Design Document
 *   **MVP:** Minimum Viable Product
-*   **API:** Application Programming Interface
 *   **DB:** Database
 *   **AI:** Artificial Intelligence
-*   **NLP:** Natural Language Processing
 *   **CI/CD:** Continuous Integration/Continuous Deployment
 *   **PaaS:** Platform as a Service
-*   **BaaS:** Backend as a Service
-*   **TWA:** Telegram Web App (Mini App)
+*   **TWA:** Telegram Web App (Mini App - Post-MVP)
 
 ---
 
 ## 2. **Architectural Goals and Constraints**
 
 ### 2.1. Goals
-*   **Rapid Development & Deployment:** Leverage PaaS/BaaS for quick MVP launch.
-*   **Scalability:** Design for growth in users, data, and feature set (especially towards mobile app).
-*   **Maintainability:** Clean, modular code for easy updates and bug fixes.
-*   **Cost-Effectiveness:** Optimize for low operational costs, especially in the early stages (target ~$100/month for 1000 users).
+*   **Rapid Development & Deployment:** Leverage PaaS for quick MVP launch of the bot.
+*   **Simplicity:** A single, manageable Python application for the Telegram bot.
+*   **Scalability (User Base):** Design for growth in users and data within the Supabase and bot infrastructure.
+*   **Maintainability:** Clean, modular code within the bot application for easy updates and bug fixes.
+*   **Cost-Effectiveness:** Optimize for low operational costs (target ~$100/month for 1000 users).
 *   **User Experience:** Prioritize responsiveness and ease of use within the Telegram bot interface.
-*   **Data Integrity & Security:** Ensure user data is handled securely and relationships are accurately represented.
-*   **Extensibility:** The backend API should be designed to support future TWA and mobile clients with minimal changes.
+*   **Data Integrity & Security:** Ensure user data is handled securely via Supabase and relationships are accurately represented.
 
 ### 2.2. Constraints
-*   **Initial Platform:** Telegram Bot is the primary interface for MVP.
-*   **Technology Stack:** Adherence to the stack defined in the PRD (Python/FastAPI, Supabase, aiogram, OpenAI, Railway).
+*   **Sole Platform:** Telegram Bot is the only interface for MVP.
+*   **Technology Stack:** Adherence to the stack: Python (aiogram) for the bot, Supabase for data, OpenAI for embeddings, Railway for hosting.
 *   **MVP Focus:** Prioritize core features; defer non-essential functionalities.
-*   **Telegram UI Limitations:** Acknowledge and work within the native bot UI limitations, with TWA as a planned improvement.
+*   **Telegram UI Limitations:** Work within the native bot UI limitations.
 *   **AI Dependency:** Reliance on OpenAI for embeddings, subject to their API availability and costs.
 
 ---
 
 ## 3. **System Overview**
 
-NetWise will be a cloud-hosted application with a three-tier architecture:
+NetWise MVP will be a cloud-hosted application consisting of two primary tiers:
 
-1.  **Presentation Tier:** Telegram Bot (user interface).
-2.  **Application Tier:** Python backend (FastAPI) handling business logic, AI matching, and API services.
-3.  **Data Tier:** Supabase (PostgreSQL) for data persistence and BaaS features.
-
+1.  **Application Tier:** The Telegram Bot, built with Python (aiogram). This single application handles all user interactions, business logic, AI matching coordination, and direct communication with the data tier.
+2.  **Data Tier:** Supabase (PostgreSQL) for data persistence, user authentication (via Telegram ID), and potentially serverless functions for simple scheduled tasks if not handled by the bot's internal scheduler.
 
 **User Interaction Flow (Example: Making a Request):**
 1.  User interacts with the Telegram Bot (e.g., `/new_request` command).
-2.  Telegram Bot (aiogram) receives the message and forwards it to the Backend API.
-3.  Backend API (FastAPI):
-    a.  Authenticates the user (via Telegram ID).
+2.  The Telegram Bot (aiogram Python application):
+    a.  Receives the message and authenticates the user (via Telegram ID).
     b.  Validates the request.
-    c.  Stores the request details in Supabase.
-    d.  (Optionally) Generates embeddings for the request text using OpenAI API.
-    e.  Queries Supabase for the user's 1st and 2nd-degree connections.
-    f.  Retrieves profiles and potentially pre-computed embeddings of these connections.
-    g.  Performs AI matching (keyword or embedding-based) considering trust scores and relevance.
-    h.  Returns a list of potential helpers to the Telegram Bot.
-4.  Telegram Bot formats and displays the list to the user.
+    c.  Stores the request details directly in Supabase using the Supabase Python client library.
+    d.  (Optionally) Generates embeddings for the request text by calling the OpenAI API.
+    e.  Queries Supabase for the user's 1st and 2nd-degree connections and their profiles.
+    f.  Performs AI matching (keyword or embedding-based) considering trust scores and relevance, using data retrieved from Supabase.
+    g.  Formats and displays the list of potential helpers back to the user in Telegram.
 
 ---
 
 ## 4. **Component Design**
 
-### 4.1. Telegram Bot (Client)
-*   **Technology:** Python (aiogram)
+### 4.1. Telegram Bot Application
+*   **Technology:** Python (aiogram), Supabase Python Client, OpenAI Python Client.
 *   **Responsibilities:**
-    *   Handle user commands and messages.
-    *   Manage conversation flows (finite state machine for multi-step processes like profile creation).
-    *   Format and display data received from the backend.
-    *   Send user inputs to the Backend API.
-    *   Handle inline keyboards and callback queries for interactive elements.
+    *   Handle all user commands and messages from Telegram.
+    *   Manage conversation flows (finite state machine for multi-step processes).
+    *   Format and display data to the user.
+    *   Directly perform CRUD operations on Supabase for user profiles, connections, requests, etc.
+    *   Implement business logic for social points, request economy, and subscription status checks (querying Supabase).
+    *   Call the OpenAI API for embeddings generation.
+    *   Execute the AI matching algorithm (keyword-based or vector similarity search against Supabase data).
+    *   Schedule and send daily digests/notifications (e.g., using `apscheduler` library within the bot process).
     *   Generate unique invitation links.
-*   **Key Modules (Conceptual):**
-    *   `CommandHandler`: Processes `/start`, `/profile`, `/new_request`, etc.
-    *   `MessageHandler`: Handles free-text inputs.
-    *   `CallbackQueryHandler`: Manages button presses.
-    *   `FSMContext`: Manages user state for multi-step interactions.
-    *   `APIClient`: Wrapper for making requests to the Backend API.
+    *   Handle payment integration callbacks (if a payment provider's webhook directly calls an endpoint exposed by the bot, or through polling/manual checks based on payment provider integration).
+*   **Key Internal Modules (Conceptual within the Python application):**
+    *   `handlers/`: Contains modules for command handlers, message handlers, callback query handlers.
+    *   `fsm_states/`: Defines states for conversation flows.
+    *   `services/supabase_service.py`: A wrapper for all Supabase client interactions (CRUD operations, custom queries).
+    *   `services/ai_matching_service.py`: Contains logic for keyword extraction, OpenAI API calls, embedding generation, and performing matching queries against Supabase (e.g., using `pg_vector` functions via the Supabase client).
+    *   `services/user_service.py`: Manages user profile logic, social points, subscription status.
+    *   `services/graph_service.py`: Manages connection logic and trust scores.
+    *   `services/request_service.py`: Manages request creation and lifecycle.
+    *   `services/notification_service.py`: Manages creation and sending of daily digests.
+    *   `services/payment_service.py`: (If applicable for MVP) Stubs or basic integration for payment provider interactions.
+    *   `scheduler.py`: Configures and runs scheduled tasks like daily digests.
+    *   `main.py` / `bot.py`: Entry point, initializes bot, dispatcher, and services.
 
-### 4.2. Backend API
-*   **Technology:** Python (FastAPI)
-*   **Responsibilities:**
-    *   Expose RESTful APIs for the Telegram Bot (and future clients).
-    *   User authentication and authorization (based on Telegram User ID).
-    *   Business logic for all core features.
-    *   Interact with Supabase for data CRUD operations.
-    *   Integrate with the AI Matching Service.
-    *   Manage social points economy.
-    *   Handle subscription and payment logic.
-    *   Schedule and trigger daily digests/notifications.
-*   **Key API Endpoints (Illustrative):**
-    *   `POST /users/register` (implicit on first interaction)
-    *   `PUT /users/{telegram_id}/profile`
-    *   `GET /users/{telegram_id}/profile`
-    *   `POST /users/{telegram_id}/invite` (generates link)
-    *   `POST /connections` (when an invite is accepted or manually added)
-    *   `PUT /connections/{connection_id}/trust`
-    *   `POST /requests`
-    *   `GET /requests/{telegram_id}/active`
-    *   `GET /requests/match/{request_id}`
-    *   `POST /requests/{request_id}/respond` (user indicates willingness to help)
-    *   `GET /users/{telegram_id}/digest` (for daily suggestions)
-    *   `POST /payments/subscribe`
-    *   `POST /payments/webhook` (for payment provider callbacks)
-*   **Modules (Conceptual):**
-    *   `routers/user_router.py`: User profile, authentication.
-    *   `routers/graph_router.py`: Connection management, trust.
-    *   `routers/request_router.py`: Request creation, matching initiation.
-    *   `routers/payment_router.py`: Subscription, one-off payments.
-    *   `services/ai_matching_service.py`: Interface to AI capabilities.
-    *   `services/notification_service.py`: Handles daily digests, reminders.
-    *   `services/social_points_service.py`: Manages point economy.
-    *   `core/security.py`: Authentication helpers.
-
-### 4.3. Data Storage (Supabase)
-*   **Technology:** Supabase (PostgreSQL backend, REST APIs, Auth, Storage)
+### 4.2. Data Storage (Supabase)
+*   **Technology:** Supabase (PostgreSQL backend, REST APIs, Auth, Storage, `pg_vector` extension)
 *   **Responsibilities:**
     *   Persistent storage for all application data.
-    *   User authentication (leveraging Supabase Auth if suitable, or custom logic with Telegram ID).
-    *   Potentially serverless functions for specific tasks (e.g., cron jobs for daily digests if not handled by backend).
-    *   Row Level Security (RLS) to enforce data access policies.
-*   **Key Tables (Schema Sketch):**
+    *   User authentication using Telegram User ID as the primary identifier.
+    *   Data access through the Supabase Python client library by the Telegram Bot application.
+    *   Row Level Security (RLS) to enforce data access policies, providing an additional layer of security even with direct client access.
+    *   Storing and indexing vector embeddings for AI matching (`pg_vector`).
+*   **Key Tables (Schema Sketch - same as PRD):**
     *   **`users`**:
-        *   `telegram_id` (PK, BigInt, unique)
-        *   `name` (Text)
-        *   `role` (Text)
-        *   `industry` (Text)
-        *   `skills` (Text[])
-        *   `goals` (Text[])
-        *   `interests` (Text[])
-        *   `profile_embedding` (Vector, optional, if pre-calculating)
-        *   `social_points` (Int, default: 0)
-        *   `free_requests_remaining` (Int, default: 5)
-        *   `subscription_tier` (Text, nullable)
-        *   `subscription_expires_at` (Timestamp, nullable)
-        *   `last_active_at` (Timestamp)
-        *   `is_active_in_search` (Boolean, default: true)
-        *   `created_at` (Timestamp)
-        *   `updated_at` (Timestamp)
+        *   `telegram_id` (PK, BigInt, unique), `name` (Text), `role` (Text), `industry` (Text), `skills` (Text[]), `goals` (Text[]), `interests` (Text[]), `profile_embedding` (Vector), `social_points` (Int), `free_requests_remaining` (Int), `subscription_tier` (Text), `subscription_expires_at` (Timestamp), `last_active_at` (Timestamp), `is_active_in_search` (Boolean), `created_at`, `updated_at`.
     *   **`connections`**:
-        *   `id` (UUID, PK)
-        *   `user1_id` (BigInt, FK to `users.telegram_id`)
-        *   `user2_id` (BigInt, FK to `users.telegram_id`)
-        *   `connection_type` (Enum: "worked_together", "intro_made", "personal", "chat_help")
-        *   `trust_score` (Int, 1-3)
-        *   `status` (Enum: "pending", "accepted", default: "accepted" for MVP direct adds)
-        *   `created_at` (Timestamp)
-        *   *(Unique constraint on (`user1_id`, `user2_id`))*
+        *   `id` (UUID, PK), `user1_id` (FK), `user2_id` (FK), `connection_type` (Enum), `trust_score` (Int), `status` (Enum), `created_at`.
     *   **`requests`**:
-        *   `id` (UUID, PK)
-        *   `requester_id` (BigInt, FK to `users.telegram_id`)
-        *   `description_text` (Text)
-        *   `description_embedding` (Vector, if using embeddings)
-        *   `status` (Enum: "open", "pending_intro", "intro_made", "resolved", "closed")
-        *   `created_at` (Timestamp)
-        *   `expires_at` (Timestamp, e.g., 7 days after creation)
-    *   **`request_matches_log`**: (Tracks who was suggested for what)
-        *   `id` (UUID, PK)
-        *   `request_id` (UUID, FK to `requests.id`)
-        *   `suggested_user_id` (BigInt, FK to `users.telegram_id`)
-        *   `introducer_user_id` (BigInt, FK to `users.telegram_id`, nullable)
-        *   `match_score` (Float, optional)
-        *   `status` (Enum: "suggested", "intro_requested", "helper_accepted_intro", "helper_declined_intro")
-        *   `created_at` (Timestamp)
+        *   `id` (UUID, PK), `requester_id` (FK), `description_text` (Text), `description_embedding` (Vector), `status` (Enum), `created_at`, `expires_at`.
+    *   **`request_matches_log`**:
+        *   `id` (UUID, PK), `request_id` (FK), `suggested_user_id` (FK), `introducer_user_id` (FK), `match_score` (Float), `status` (Enum), `created_at`.
     *   **`activity_history`**:
-        *   `id` (UUID, PK)
-        *   `user_id` (BigInt, FK to `users.telegram_id`)
-        *   `action_type` (Enum: "helped_on_request")
-        *   `related_request_id` (UUID, FK to `requests.id`, nullable)
-        *   `points_change` (Int)
-        *   `timestamp` (Timestamp)
-    *   **`subscriptions`**: (If managing subscription details beyond user table)
-        *   `id` (UUID, PK)
-        *   `user_id` (BigInt, FK to `users.telegram_id`)
-        *   `plan_name` (Text, e.g., "tier_500_friends")
-        *   `stripe_subscription_id` (Text, unique, nullable)
-        *   `start_date` (Timestamp)
-        *   `end_date` (Timestamp)
-        *   `status` (Enum: "active", "canceled", "past_due")
+        *   `id` (UUID, PK), `user_id` (FK), `action_type` (Enum), `related_request_id` (FK), `points_change` (Int), `timestamp`.
+    *   **`subscriptions`**:
+        *   `id` (UUID, PK), `user_id` (FK), `plan_name` (Text), `payment_provider_subscription_id` (Text), `start_date`, `end_date`, `status` (Enum).
 
-### 4.4. Matching Service (MVP: Keyword/Profile-based)
-
-For the Minimum Viable Product (MVP), the matching service will focus on identifying relevant users for a given request using keyword-based and profile attribute comparisons, rather than complex AI embeddings. This approach allows for faster initial development while still providing core matching functionality.
-
-*   **Technology (MVP):**
-    *   Direct database queries using SQL (e.g., `ILIKE` for case-insensitive partial string matching, PostgreSQL Full-Text Search - FTS).
-    *   Python for implementing the core matching logic, keyword extraction, and scoring algorithms.
-*   **Post-MVP Enhancement:**
-    *   OpenAI Embeddings API for generating semantic vector representations.
-    *   Cosine Similarity or Faiss for vector search, leveraging Supabase's `pg_vector` extension for efficient storage and querying of embeddings.
-
+### 4.3. AI Matching Logic (MVP: Keyword/Profile-based within Bot Application)
+*   **Technology (MVP):** Python logic within the bot application, direct SQL queries to Supabase (via its client) using `ILIKE` or PostgreSQL Full-Text Search (FTS).
+*   **Post-MVP Enhancement:** OpenAI Embeddings API (called from bot application), vector storage in Supabase (`pg_vector`), and cosine similarity queries executed via Supabase client.
 *   **Responsibilities (MVP):**
-    *   To receive a user's request and their connection graph (1st and 2nd-degree friends).
-    *   To extract relevant keywords from the request description.
-    *   To search through the profiles of users within the connection graph.
-    *   To identify potential helpers based on matches between request keywords and user profile attributes (such as `skills`, `role`, `industry`, `goals`, `interests`).
-    *   To rank these potential helpers by a relevance score that incorporates connection degree, trust score, and user activity.
+    *   Bot application receives a user's request.
+    *   Bot application extracts keywords from the request description.
+    *   Bot application queries Supabase for profiles of 1st and 2nd-degree connections.
+    *   Bot application performs keyword matching against profile attributes (`skills`, `role`, `industry`, etc.).
+    *   Bot application ranks helpers based on match score, connection degree, trust score, and activity.
+*   **Logic Flow (MVP - executed by the bot application):**
+    1.  Input: Request text, requester's Telegram ID.
+    2.  Keyword Extraction: Bot extracts keywords from request text.
+    3.  Candidate Retrieval: Bot queries Supabase for 1st/2nd degree friends and their profiles.
+    4.  Candidate Evaluation: For each candidate, bot compares request keywords with profile fields. Score based on matches.
+    5.  Score Weighting: Adjust score by connection degree, trust score (from Supabase), user activity.
+    6.  Filtering & Ranking: Bot filters low-score candidates and ranks the rest.
+    7.  Output: Bot presents top N candidates to the requester.
 
-*   **Logic Flow (MVP):**
-
-    1.  **Input Reception:** The service receives the request text from the user and identifies the requester's 1st-degree friends and 2nd-degree friends (friends of friends) from the `connections` table.
-    2.  **Keyword Extraction:**
-        *   Keywords are extracted from the `description_text` of the `requests` table. This can involve simple techniques like splitting the text by spaces, removing common stop words (e.g., "a", "the", "is"), and potentially basic stemming.
-        *   Keywords from the requester's own `goals` (from their `users` profile) related to the request might also be considered.
-    3.  **Candidate Evaluation Loop:** For each potential helper (user) in the requester's 1st and 2nd-degree network:
-        a.  **Profile Retrieval:** Fetch the candidate's profile data from the `users` table, including `skills` (Text[]), `role` (Text), `industry` (Text), `goals` (Text[]), and `interests` (Text[]).
-        b.  **Keyword Matching & Scoring:**
-            *   Compare the extracted request keywords against the candidate's profile fields.
-            *   A simple scoring mechanism will be applied:
-                *   Points awarded for each keyword match found in `skills`, `role`, `industry`.
-                *   Potentially fewer points for matches in `goals` or `interests` if deemed less indicative of direct help capability.
-                *   PostgreSQL's Full-Text Search (`tsvector` and `tsquery`) can be used for more sophisticated keyword matching than simple `ILIKE` if implemented.
-        c.  **Score Weighting & Adjustment:** The raw match score is then adjusted by:
-            *   **Connection Degree:** Matches with 1st-degree friends receive a higher weight than matches with 2nd-degree friends.
-            *   **Trust Score:** The `trust_score` (1-3) from the `connections` table (for 1st-degree friends, or an aggregated/inferred score for 2nd-degree) positively influences the score.
-            *   **User Activity:** A boost might be applied if the candidate `user.last_active_at` is recent, or a penalty if they are inactive (as per PRD point 5.4 `is_active_in_search`).
-            *   **History of Help / Social Points (PRD point 5.1):** Users with higher `social_points` or a history of providing help (tracked in `activity_history`) might receive a slight boost, signifying reliability.
-    4.  **Filtering:** Candidates with a final weighted score below a predefined threshold are filtered out.
-    5.  **Ranking:** The remaining candidates are ranked in descending order of their final weighted score.
-    6.  **Output:** The top N ranked candidates are returned to the Backend API to be presented to the requester.
-
-*   **Post-MVP Evolution:**
-    The matching service is designed to be significantly enhanced post-MVP. The plan is to integrate OpenAI Embeddings to create rich, semantic vector representations for both user profiles (based on their `skills`, `goals`, `interests`, `role`, `industry`) and request descriptions.
-    These embeddings will be stored in Supabase using the `pg_vector` extension. Matching will then be performed using vector similarity search (e.g., cosine similarity), which can identify semantically similar concepts even if the exact keywords don't match. This will lead to more nuanced, accurate, and contextually relevant matches. The MVP's keyword-based system can then serve as a fallback or a supplementary signal in the advanced matching algorithm.
-    
-
-### 4.5. Payment Integration
-*   **Technology:** Stripe (or similar, like Paddle, LemonSqueezy). Supabase can integrate with Stripe.
-*   **Responsibilities:**
-    *   Handle subscription sign-ups and recurring payments.
-    *   Process one-time payments for additional requests.
-    *   Manage webhook events from the payment provider (e.g., `payment_succeeded`, `subscription_canceled`).
-    *   Update user subscription status and free request quotas in Supabase.
+### 4.4. Payment Integration
+*   **Technology:** Stripe (or similar) Python SDK.
+*   **Responsibilities (within Bot application):**
+    *   Bot application guides users through subscription sign-up (e.g., sending a Stripe checkout link).
+    *   Bot application may need a simple, secure webhook endpoint (if Railway allows incoming HTTP to bot process easily) or rely on periodic checks/manual updates for payment success.
+    *   Bot application updates user subscription status and quotas in Supabase based on payment confirmations.
 
 ---
 
 ## 5. **Data Design**
 
-Refer to Section 4.3 (Data Storage - Supabase) for the preliminary database schema.
+Refer to Section 4.2 (Data Storage - Supabase) for the database schema.
 
 ### 5.1. Data Flow
-*   **User Onboarding:** Telegram -> Bot -> API -> Supabase (create user).
-*   **Profile Update:** Telegram -> Bot -> API -> Supabase (update user).
-*   **Making a Request:** Telegram -> Bot -> API (store request, call AI service) -> AI Service (OpenAI, internal logic) -> API -> Supabase (store matches) -> Bot -> Telegram.
-*   **Responding to Digest:** Telegram -> Bot -> API -> Supabase (update `request_matches_log`, `activity_history`, `social_points`).
+*   **User Onboarding:** Telegram -> Bot App -> Supabase (create user).
+*   **Profile Update:** Telegram -> Bot App -> Supabase (update user).
+*   **Making a Request:** Telegram -> Bot App (processes, calls OpenAI if needed, queries Supabase for graph/profiles, performs matching) -> Supabase (store request, log matches) -> Bot App -> Telegram.
+*   **Responding to Digest:** Telegram -> Bot App -> Supabase (update `request_matches_log`, `activity_history`, `social_points`).
 
 ### 5.2. Data Backup and Recovery
-*   Supabase provides automated daily backups and Point-in-Time Recovery (PITR) capabilities depending on the plan. This will be the primary mechanism.
+*   Supabase provides automated daily backups and Point-in-Time Recovery (PITR) capabilities. This will be the primary mechanism.
 
 ---
 
 ## 6. **Integration and APIs**
 
-*   **Internal APIs:** The FastAPI backend will expose RESTful APIs as described in section 4.2. These APIs will be consumed by the `aiogram` bot.
-*   **External APIs:**
+*   **External APIs used by the Bot Application:**
     *   **Telegram Bot API:** Used by `aiogram` to send/receive messages.
+    *   **Supabase API:** Primarily via Supabase Python client library for database operations and auth.
     *   **OpenAI API:** For generating text embeddings.
-    *   **Payment Gateway API (e.g., Stripe):** For processing payments.
+    *   **Payment Gateway API (e.g., Stripe):** Via Python SDK for processing payments.
 
 ---
 
 ## 7. **Deployment and Infrastructure**
 
 ### 7.1. Hosting
-*   **Backend API (FastAPI) & Telegram Bot (aiogram):** Railway. Railway provides a PaaS environment suitable for Python applications, with auto-scaling and managed infrastructure. The bot and API can run as separate services or combined in one for simplicity initially.
+*   **Telegram Bot Application (Python/aiogram):** Railway. Railway hosts the single Python application.
 *   **Database:** Supabase (managed PostgreSQL).
 
 ### 7.2. CI/CD
-*   **Source Control:** Git (e.g., GitHub, GitLab).
-*   **CI/CD Pipeline:** GitHub Actions (or Railway's native Git integration) to automatically build, test, and deploy the backend API and bot to Railway upon pushes to the main branch.
+*   **Source Control:** Git (e.g., GitHub).
+*   **CI/CD Pipeline:** GitHub Actions (or Railway's native Git integration) to automatically build and deploy the bot application to Railway upon pushes to the main branch.
 
 ### 7.3. Environment Configuration
-*   Separate configurations for `development`, `staging` (optional), and `production` environments.
-*   Sensitive information (API keys, database credentials) managed via environment variables (e.g., Railway's environment variable management, Supabase Vault for secrets).
+*   Separate configurations for `development` and `production` environments.
+*   Sensitive information (Telegram Bot Token, Supabase URL/keys, OpenAI API key, payment provider keys) managed via environment variables in Railway.
 
 ---
 
 ## 8. **Security Considerations**
 
-*   **Authentication:** User identity primarily tied to their unique Telegram User ID. Backend API will validate requests based on this ID.
+*   **Authentication:** User identity tied to their unique Telegram User ID. The bot application uses this for all operations.
 *   **Authorization:**
-    *   Users can only modify their own profiles and requests.
-    *   Supabase Row Level Security (RLS) will be configured to enforce data access rules at the database layer.
+    *   Bot logic ensures users can only modify their own data.
+    *   Supabase Row Level Security (RLS) configured to provide database-level protection, ensuring the bot's API key for Supabase has appropriately restricted access.
 *   **Data Privacy:**
-    *   Comply with relevant data privacy regulations (e.g., GDPR if applicable).
-    *   Clearly communicate data usage to users.
-*   **API Security:**
-    *   HTTPS for all API communication.
-    *   Input validation on all API endpoints to prevent injection attacks (FastAPI Pydantic models help here).
-    *   Rate limiting on API endpoints to prevent abuse.
-*   **Secret Management:** Use Railway's environment variables and Supabase Vault for API keys, database credentials, etc. Do not commit secrets to the repository.
+    *   Adherence to data privacy best practices.
+*   **API Key Security:**
+    *   Supabase API keys, OpenAI key, and other sensitive keys stored securely as environment variables on Railway, not in code.
+    *   Use Supabase's `anon` key for client-side operations if ever doing direct DB calls from a TWA (post-MVP), and `service_role` key securely within the bot application. For bot-only MVP, `service_role` key is used by the bot.
+*   **Input Validation:** The bot application validates all user inputs to prevent errors and basic injection-style attacks before interacting with Supabase or other services.
 *   **Spam/Abuse Prevention:**
-    *   Monitor for unusual activity.
-    *   Mechanism for reporting inappropriate requests or users.
-    *   The social points system and paid requests can act as a deterrent.
+    *   Social points system and paid requests as deterrents.
+    *   Rate limiting for bot commands handled by `aiogram` middleware if necessary.
 
 ---
 
 ## 9. **Scalability and Performance**
 
-*   **Backend API:** FastAPI is asynchronous and highly performant. Railway allows for horizontal scaling of services.
-*   **Database:** Supabase can scale its underlying PostgreSQL instances. Proper indexing of tables (especially on FKs, frequently queried columns, and for vector similarity search) will be crucial.
+*   **Bot Application:** `aiogram` is asynchronous. Railway can scale the service running the bot application if needed (e.g., by increasing resources or running multiple instances if the bot is stateless or state is managed externally).
+*   **Database:** Supabase can scale its PostgreSQL instances. Proper indexing in Supabase tables is crucial.
 *   **AI Matching:**
-    *   OpenAI API calls can be a bottleneck; consider asynchronous processing or batching.
-    *   For vector search, Supabase `pg_vector` with HNSW indexing is efficient for millions of vectors. If scale exceeds this, dedicated vector DBs (e.g., Pinecone, Weaviate) or Faiss on a separate service could be considered in the future.
-*   **Caching:** Implement caching (e.g., Redis, or FastAPI-Cache with a simple backend) for frequently accessed, less dynamic data (e.g., user profiles for active users, popular help categories) if performance bottlenecks are identified.
-*   **Asynchronous Tasks:** For long-running operations like sending daily digests to many users or complex AI processing, use background task managers (e.g., Celery with RabbitMQ/Redis, or FastAPI's `BackgroundTasks`). Railway might have simpler solutions for background jobs.
+    *   OpenAI API calls are external; bot handles them asynchronously.
+    *   Vector search in Supabase (`pg_vector`) needs appropriate indexing (HNSW).
+*   **Asynchronous Tasks:** `aiogram` handles I/O-bound tasks asynchronously. CPU-bound tasks within matching or digest generation should be optimized or run in a way that doesn't block the main bot event loop (e.g., `asyncio.to_thread` for short tasks, or if Railway supports, separate worker processes for heavy jobs like daily digest generation for many users). For MVP, `apscheduler` within the bot process should be sufficient.
 
 ---
 
 ## 10. **Monitoring and Logging**
 
-*   **Application Logging:** Structured logging within the FastAPI application and aiogram bot. Logs will be streamed to Railway's logging service.
-*   **Error Tracking:** Integrate a service like Sentry for real-time error reporting and monitoring.
-*   **Performance Monitoring:** Railway provides basic metrics. For more detailed APM, tools like Datadog or New Relic could be integrated later.
+*   **Application Logging:** Structured logging within the `aiogram` bot application. Logs streamed to Railway's logging service.
+*   **Error Tracking:** Integrate a service like Sentry for real-time error reporting.
 *   **Supabase Monitoring:** Supabase dashboard provides insights into database performance and usage.
-*   **Key Metrics to Monitor (Technical):** API response times, error rates, database query performance, AI service latency, message queue lengths (if using).
+*   **Key Metrics to Monitor (Technical):** Bot response times, error rates, Supabase query performance, OpenAI API latency.
 
 ---
 
 ## 11. **Future Considerations (Post-MVP Architectural Evolution)**
 
-*   **Telegram Mini App (TWA):** The existing FastAPI backend will serve the TWA. The TWA itself will be a React Native (or simple HTML/JS/CSS) application hosted and loaded within Telegram.
-*   **Mobile Application (React Native):** The same FastAPI backend will be used. API authentication might need to be enhanced (e.g., JWTs) if users can sign up outside of Telegram.
-*   **Graph Database:** If graph traversal queries become complex and a performance bottleneck on PostgreSQL at very large scale, migrating the graph data to a dedicated graph database (e.g., Neo4j) could be considered. Supabase's Postgres with recursive CTEs should suffice for a long time.
-*   **Advanced AI/ML:**
-    *   Fine-tuning models for better domain-specific matching.
-    *   Developing more sophisticated trust and reputation algorithms.
-*   **Microservices:** If the application grows significantly in complexity, certain components (e.g., AI Matching, Notifications, Payments) could be broken out into separate microservices. For now, a modular monolith is preferred.
-*   **Real-time Features:** For instant notifications or chat within intros, WebSockets might be integrated (FastAPI supports this).
+*   **Telegram Mini App (TWA):** The bot application might evolve to expose a few simple, secure HTTP endpoints (e.g., using `aiohttp` alongside `aiogram`) for the TWA, or the TWA could interact with Supabase directly (secured with RLS and user-specific JWTs from Supabase Auth). This is the primary planned evolution for UI enhancement.
+*   **Dedicated Backend Service:** If the bot application's logic becomes too complex or if more robust API capabilities are needed for the TWA or other future integrations, a dedicated FastAPI backend service could be developed. The bot would then communicate with this backend.
+*   **Graph Database:** If graph queries become a bottleneck, consider migration.
+*   **Advanced AI/ML & Real-time Features:** As per original ADD.
 
 ---
 
@@ -363,18 +248,21 @@ Refer to Section 4.3 (Data Storage - Supabase) for the preliminary database sche
 
 *   **Cold Start - User Graph Density:**
     *   *Risk:* Users have few connections, making matching ineffective.
-    *   *Mitigation (Technical):* Design efficient "invite friend" flows. Explore options for importing contacts (with user permission) if Telegram API allows or if shifting to mobile.
+    *   *Mitigation:* Design efficient "invite friend" flows.
 *   **AI Matching Accuracy:**
-    *   *Risk:* AI provides irrelevant matches, frustrating users.
-    *   *Mitigation:* Start with simpler keyword matching alongside embeddings. Implement a feedback mechanism for users to rate match quality. Continuously refine algorithms and potentially allow A/B testing of different matching strategies.
-*   **Scalability of AI Matching:**
-    *   *Risk:* OpenAI API costs or latency become prohibitive at scale. Vector DB queries become slow.
-    *   *Mitigation:* Optimize embedding usage. Cache embeddings. Explore smaller, self-hostable embedding models for some tasks. Ensure `pg_vector` is properly indexed and configured.
-*   **Supabase Lock-in/Limitations:**
-    *   *Risk:* Over-reliance on Supabase-specific features might make migration hard. Limitations in BaaS offerings.
-    *   *Mitigation:* Use Supabase primarily for its PostgreSQL core and standard BaaS features (Auth, Storage). Business logic resides in the FastAPI backend, making it portable.
+    *   *Risk:* AI provides irrelevant matches.
+    *   *Mitigation:* Start with simpler keyword matching. Implement feedback.
+*   **Scalability of Bot Application:**
+    *   *Risk:* Single bot process becomes a bottleneck for CPU-bound tasks or managing too many concurrent users/scheduled jobs.
+    *   *Mitigation:* Optimize code. Ensure heavy tasks are non-blocking. Plan for potential separation of concerns (e.g., scheduler to a separate small worker) if Railway supports it easily or if moving to a more flexible hosting.
+*   **Supabase Limitations/Costs:**
+    *   *Risk:* Hitting Supabase free/paid tier limits unexpectedly.
+    *   *Mitigation:* Monitor usage. Optimize queries. Business logic largely in Python, allowing easier migration of compute if needed.
 *   **Telegram Bot API Limitations:**
     *   *Risk:* UI constraints, rate limits.
-    *   *Mitigation:* Design interactions to be efficient. Plan for TWA to overcome UI limitations. Handle Telegram API rate limits gracefully.
+    *   *Mitigation:* Design interactions efficiently. Plan for TWA. Handle API rate limits in code.
+*   **Monolithic Bot Complexity:**
+    *   *Risk:* The single Python application becomes difficult to maintain as features grow.
+    *   *Mitigation:* Strict modular design within the bot application. Clear separation of concerns into services/modules. Be prepared to refactor parts into a dedicated backend service (see Future Considerations) if complexity grows beyond manageable limits for a single bot codebase.
 
 ---
