@@ -93,9 +93,9 @@
     *   `- [x]` Unit tests for API client methods (mocking `httpx`).
 *   `- [x]` **Bot: User States (`bot/states/user_states.py`)**
     *   `- [x]` Define `ProfileSetup` FSM StatesGroup (e.g., `ASK_NAME`, `ASK_ROLE`, `ASK_INDUSTRY`, `ASK_SKILLS`, `ASK_GOALS`, `ASK_INTERESTS`).
-*   `- [ ]` **Bot: Keyboards (`bot/keyboards/`)**
-    *   `- [ ]` `inline_keyboards.py`: `edit_profile_keyboard()`, `skip_question_keyboard()`.
-    *   `- [ ]` `reply_keyboards.py`: `main_menu_keyboard()`.
+*   `- [x]` **Bot: Keyboards (`bot/keyboards/`)**
+    *   `- [x]` `inline_keyboards.py`: `edit_profile_keyboard()`, `skip_question_keyboard()`.
+    *   `- [x]` `reply_keyboards.py`: `main_menu_keyboard()`.
 *   `- [ ]` **Bot: Formatters (`bot/utils/formatters.py`)**
     *   `- [ ]` `format_user_profile_message(profile_data)`.
 *   `- [ ]` **Bot: User Handlers (`bot/handlers/user_handlers.py`)**
