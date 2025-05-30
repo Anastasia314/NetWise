@@ -46,13 +46,13 @@ class APIClient:
             APIClientResponseError: For non-2xx HTTP responses
         """
         payload = {
-            "telegram_id": telegram_id,
+            "telegram_id": str(telegram_id),  # Convert to string as API expects string
             "name": str(name),
             "username": username
         }
         
         try:
-            response = await self.client.post("/users/onboard", json=payload)
+            response = await self.client.post("/users/users", json=payload)
             response.raise_for_status()
             return response.json()
         except httpx.RequestError as e:
