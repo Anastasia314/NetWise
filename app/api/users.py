@@ -23,7 +23,7 @@ router = APIRouter(
     },
 )
 
-@router.post("/users", response_model=UserResponse)
+@router.post("/", response_model=UserResponse)
 async def create_user(
     user: UserCreate,
     telegram_id: Annotated[str, Depends(get_current_telegram_id)],
@@ -34,7 +34,7 @@ async def create_user(
     """
     return await user_service.create_or_get_user(telegram_id, user)
 
-@router.get("/users/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse)
 async def get_user_profile(
     telegram_id: Annotated[str, Depends(get_current_telegram_id)],
     user_service: Annotated[UserService, Depends(get_user_service)]
@@ -44,7 +44,7 @@ async def get_user_profile(
     """
     return await user_service.get_user_profile(telegram_id)
 
-@router.patch("/users/me", response_model=UserResponse)
+@router.patch("/me", response_model=UserResponse)
 async def update_user_profile(
     profile: UserProfileUpdate,
     telegram_id: Annotated[str, Depends(get_current_telegram_id)],

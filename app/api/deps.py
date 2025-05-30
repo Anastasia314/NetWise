@@ -5,7 +5,7 @@ This module contains dependencies for API endpoints, such as retrieving the Supa
 and extracting user identity from request headers.
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase.client import Client
 from typing import Annotated
@@ -21,16 +21,16 @@ async def get_supabase_client() -> Client:
     """
     return get_supabase_client()
 
-async def get_current_telegram_id(credentials: str) -> str:
+async def get_current_telegram_id(x_telegram_id: str = Header(..., alias="X-Telegram-ID")) -> str:
     """
-    Get current user's Telegram ID from credentials.
+    Get current user's Telegram ID from X-Telegram-ID header.
     """
-    if not credentials:
+    if not x_telegram_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            detail="X-Telegram-ID header is required"
         )
-    return credentials
+    return x_telegram_id
 
 async def get_user_service(db_client: Client = Depends(get_supabase_client)) -> UserService:
     """
