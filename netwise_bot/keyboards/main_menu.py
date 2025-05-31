@@ -15,6 +15,7 @@ def get_main_menu_keyboard():
         keyboard=[
             [KeyboardButton(text="My Profile")],
             [KeyboardButton(text="My Connections")],
+            [KeyboardButton(text="New Request")],
             [KeyboardButton(text="Generate Invite")],
             [KeyboardButton(text="Toggle Search")]
         ],
@@ -32,10 +33,11 @@ def get_profile_menu_keyboard():
                 InlineKeyboardButton(text="👥 My Connections", callback_data="my_connections")
             ],
             [
-                InlineKeyboardButton(text="🔗 Generate Invite", callback_data="generate_invite"),
-                InlineKeyboardButton(text="🔄 Toggle Search", callback_data="toggle_search")
+                InlineKeyboardButton(text="📝 New Request", callback_data="new_request"),
+                InlineKeyboardButton(text="🔗 Generate Invite", callback_data="generate_invite")
             ],
             [
+                InlineKeyboardButton(text="🔄 Toggle Search", callback_data="toggle_search"),
                 InlineKeyboardButton(text="❓ Help", callback_data="help")
             ]
         ]
@@ -49,10 +51,11 @@ def get_main_menu_inline_keyboard():
                 InlineKeyboardButton(text="👥 My Connections", callback_data="my_connections")
             ],
             [
-                InlineKeyboardButton(text="🔗 Generate Invite", callback_data="generate_invite"),
-                InlineKeyboardButton(text="🔄 Toggle Search", callback_data="toggle_search")
+                InlineKeyboardButton(text="📝 New Request", callback_data="new_request"),
+                InlineKeyboardButton(text="🔗 Generate Invite", callback_data="generate_invite")
             ],
             [
+                InlineKeyboardButton(text="🔄 Toggle Search", callback_data="toggle_search"),
                 InlineKeyboardButton(text="❓ Help", callback_data="help")
             ]
         ]

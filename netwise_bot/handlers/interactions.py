@@ -30,9 +30,7 @@ class InteractionStates(StatesGroup):
 
 async def handle_ask_for_help(
     callback: CallbackQuery,
-    state: FSMContext,
-    request_id: str,
-    helper_id: int
+    state: FSMContext
 ) -> None:
     """
     Handle the initial "Ask for help" button click.
@@ -40,21 +38,29 @@ async def handle_ask_for_help(
     Args:
         callback: The callback query
         state: The FSM context
-        request_id: The request ID
-        helper_id: The Telegram ID of the potential helper
     """
     try:
-        # Get request details
-        request = request_service.get_request(request_id)
+        # Теперь callback.data содержит только user_id помощника
+        helper_id = callback.data
+        logger.info(f"handle_ask_for_help: callback.data={callback.data}, helper_id={helper_id}")
+        # Получаем request_id последнего активного запроса пользователя
+        # (или из состояния, если вы его туда сохраняете)
+        # Здесь пример через сервис request_service:
+        requester_id = callback.from_user.id
+        request = request_service.get_last_request_by_user(requester_id)
         if not request:
+            logger.error(f"handle_ask_for_help: request not found for requester_id={requester_id}")
             await callback.answer("Request not found")
             return
+        request_id = request["id"]
+        logger.info(f"handle_ask_for_help: request_id={request_id}")
 
         # Get connection type between users
         connection_type = user_service.get_connection_type(
             request["requester_id"],
             helper_id
         )
+        logger.info(f"handle_ask_for_help: connection_type={connection_type}")
 
         if connection_type == "direct":
             # Direct connection - ask helper directly
@@ -337,7 +343,7 @@ async def update_match_status(
 # Register handlers
 router.callback_query.register(
     handle_ask_for_help,
-    F.data.startswith("ask_help_")
+    lambda c: c.data and not c.data.startswith(("accept_intro_", "decline_intro_", "facilitate_intro_", "decline_facilitate_"))
 )
 
 router.callback_query.register(

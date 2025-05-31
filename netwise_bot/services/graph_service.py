@@ -321,3 +321,6 @@ class GraphService:
         except Exception as e:
             logger.error(f"Error getting friends: {e}", exc_info=True)
             return {'connections': [], 'total': 0, 'page': 1, 'total_pages': 1} 
+
+from netwise_bot.services.supabase_client import supabase_client
+graph_service = GraphService(supabase_client) 

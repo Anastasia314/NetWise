@@ -3,6 +3,7 @@ Keyboards for request-related interactions.
 """
 from typing import List, Dict
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import logging
 
 def get_request_confirmation_keyboard() -> InlineKeyboardMarkup:
     """
@@ -44,36 +45,37 @@ def get_request_cancellation_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
-def get_ask_help_keyboard(
-    request_id: str,
-    potential_helpers: List[Dict]
-) -> InlineKeyboardMarkup:
+def get_ask_help_keyboard(request_id: str, potential_helpers: List[Dict]) -> InlineKeyboardMarkup:
     """
-    Get keyboard for asking potential helpers for help.
+    Create keyboard for asking potential helpers for help.
     
     Args:
-        request_id: The request ID
-        potential_helpers: List of potential helpers with their details
+        request_id: ID of the request
+        potential_helpers: List of potential helpers with their match scores
         
     Returns:
-        InlineKeyboardMarkup with Ask for Help buttons
+        InlineKeyboardMarkup with buttons for each potential helper
     """
-    buttons = []
+    keyboard = []
+    logger = logging.getLogger(__name__)
     
     for helper in potential_helpers:
-        buttons.append([
+        match_score = helper.get('match_score', 0)
+        button_text = f"Ask {helper['name']} ({match_score}% match)"
+        callback_data = f"{helper['user_id']}"
+        logger.info(f"Creating ask_help button: text={button_text}, callback_data={callback_data}, len={len(callback_data)}")
+        keyboard.append([
             InlineKeyboardButton(
-                text=f"Ask {helper['name']} for help",
-                callback_data=f"ask_help_{request_id}_{helper['user_id']}"
+                text=button_text,
+                callback_data=callback_data
             )
         ])
     
-    # Add a "Cancel" button at the bottom
-    buttons.append([
+    keyboard.append([
         InlineKeyboardButton(
-            text="❌ Cancel",
+            text="Cancel",
             callback_data="cancel_request"
         )
     ])
     
-    return InlineKeyboardMarkup(inline_keyboard=buttons) 
+    return InlineKeyboardMarkup(inline_keyboard=keyboard) 

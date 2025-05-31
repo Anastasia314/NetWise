@@ -210,35 +210,27 @@ class UserService:
             logger.error(f"Error getting social points: {e}")
             return None
 
-    async def use_free_request(self, telegram_id: int) -> tuple[bool, str]:
+    async def add_free_request(self, telegram_id: int) -> bool:
         """
-        Use one of the user's free requests.
-        
+        Add a free request to a user's quota.
         Args:
-            telegram_id: The Telegram ID of the user
-            
+            telegram_id: Telegram ID of the user
         Returns:
-            tuple[bool, str]: (success, message)
+            bool: True if successful, False otherwise
         """
         try:
-            # Check if user has free requests remaining
+            # Получаем пользователя по Telegram ID
             user = await self._client.fetch_user_by_telegram_id(telegram_id)
             if not user:
-                return False, "User not found"
-
-            free_requests = user.get('free_requests_remaining', 0)
-            if free_requests <= 0:
-                return False, "No free requests remaining"
-
-            # Deduct one free request
-            result = await self._client.update_user_free_requests(telegram_id, -1)
-            if result:
-                return True, f"Free request used. {free_requests - 1} requests remaining."
-            return False, "Error using free request."
-
+                logger.error(f"User not found: {telegram_id}")
+                return False
+            user_uuid = user['id']
+            # Обновляем количество бесплатных запросов
+            result = self._client.update_user_free_requests(user_uuid, 1)
+            return result is not None
         except Exception as e:
-            logger.error(f"Error using free request: {e}")
-            return False, "An error occurred"
+            logger.error(f"Error adding free request: {e}")
+            return False
 
     async def reset_monthly_free_requests(self) -> bool:
         """

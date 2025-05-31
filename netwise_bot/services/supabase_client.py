@@ -280,7 +280,7 @@ class SupabaseClient:
             Created request record
         """
         try:
-            result = await self._client.table("requests").insert(request_data).execute()
+            result = self._client.table("requests").insert(request_data).execute()
             return result.data[0]
         except Exception as e:
             print(f"Error creating request record: {str(e)}")
@@ -460,4 +460,7 @@ class SupabaseClient:
             
         except Exception as e:
             print(f"Error resetting free requests for all users: {str(e)}")
-            return False 
+            return False
+
+# Create singleton instance
+supabase_client = SupabaseClient() 

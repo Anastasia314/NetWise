@@ -7,7 +7,9 @@ from ..services.graph_service import GraphService
 from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_settings_keyboard
 from ..states.profile_states import ProfileStates
 from ..handlers.profile import show_profile
+from ..handlers.requests import cmd_newrequest
 from ..keyboards.main_menu import get_main_menu_keyboard, get_profile_menu_keyboard, get_main_menu_inline_keyboard, get_menu_button
+from ..states.request_states import RequestStates
 
 # Create router for common handlers
 router = Router()
@@ -248,4 +250,40 @@ async def handle_menu_button(message: types.Message):
     await message.answer(
         "Главное меню:",
         reply_markup=get_main_menu_inline_keyboard()
-    ) 
+    )
+
+@router.message(lambda m: m.text == "New Request")
+async def handle_new_request_menu(message: types.Message, state: FSMContext):
+    """Handle New Request button from menu."""
+    try:
+        # Check if user has free requests remaining
+        success = await user_service.add_free_request(message.from_user.id)
+        if not success:
+            await message.answer("You have no free requests remaining. Please purchase more requests or wait for your monthly quota to reset.")
+            return
+
+        # Ask for request description
+        await message.answer("Please describe your request in detail. What kind of help or connection are you looking for?")
+        await state.set_state(RequestStates.description)
+
+    except Exception as e:
+        logger.error(f"Error in New Request button handler: {e}")
+        await message.answer("An error occurred. Please try again later.")
+
+@router.callback_query(F.data == "new_request")
+async def handle_new_request_callback(callback: types.CallbackQuery, state: FSMContext):
+    """Handle New Request button from inline keyboard."""
+    try:
+        # Check if user has free requests remaining
+        success = await user_service.add_free_request(callback.from_user.id)
+        if not success:
+            await callback.message.edit_text("You have no free requests remaining. Please purchase more requests or wait for your monthly quota to reset.")
+            return
+
+        # Ask for request description
+        await callback.message.edit_text("Please describe your request in detail. What kind of help or connection are you looking for?")
+        await state.set_state(RequestStates.description)
+
+    except Exception as e:
+        logger.error(f"Error in New Request callback handler: {e}")
+        await callback.message.edit_text("An error occurred. Please try again later.") 

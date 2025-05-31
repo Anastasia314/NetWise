@@ -27,27 +27,40 @@ async def cmd_newrequest(message: Message, state: FSMContext):
     Start the request creation flow.
     """
     try:
-        # Check user's request quota
-        success, message_text = await user_service.use_free_request(message.from_user.id)
+        # Check if user has free requests remaining
+        success = await user_service.add_free_request(message.from_user.id)
         if not success:
-            await message.answer(message_text)
+            await message.answer("You have no free requests remaining. Please purchase more requests or wait for your monthly quota to reset.")
             return
 
-        # Set initial state
+        # Ask for request description
+        await message.answer("Please describe your request in detail. What kind of help or connection are you looking for?")
         await state.set_state(RequestStates.description)
-        
-        # Send prompt for request description
-        await message.answer(
-            "Please describe what kind of help you're looking for. "
-            "Be specific about your needs and any relevant details.",
-            reply_markup=get_request_cancellation_keyboard()
-        )
-        
+
     except Exception as e:
         logger.error(f"Error in /newrequest command: {e}")
-        await message.answer(
-            "Sorry, there was an error starting your request. Please try again."
-        )
+        await message.answer("An error occurred. Please try again later.")
+
+@router.callback_query(F.data == "new_request")
+async def handle_new_request_callback(callback: CallbackQuery, state: FSMContext):
+    """
+    Handle new request button callback.
+    Start the request creation flow.
+    """
+    try:
+        # Check if user has free requests remaining
+        success = await user_service.add_free_request(callback.from_user.id)
+        if not success:
+            await callback.message.edit_text("You have no free requests remaining. Please purchase more requests or wait for your monthly quota to reset.")
+            return
+
+        # Ask for request description
+        await callback.message.edit_text("Please describe your request in detail. What kind of help or connection are you looking for?")
+        await state.set_state(RequestStates.description)
+
+    except Exception as e:
+        logger.error(f"Error in new request callback: {e}")
+        await callback.message.edit_text("An error occurred. Please try again later.")
 
 @router.message(RequestStates.description)
 async def handle_request_description(message: Message, state: FSMContext):

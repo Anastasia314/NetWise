@@ -5,7 +5,6 @@ import logging
 
 from netwise_bot.services.supabase_client import SupabaseClient, supabase_client
 from netwise_bot.services.user_service import user_service
-from netwise_bot.utils.logger import get_logger
 from netwise_bot.utils.constants import (
     REQUEST_STATUS_OPEN,
     REQUEST_STATUS_PENDING_INTRO,
@@ -32,14 +31,20 @@ class RequestService:
             Tuple of (success, message, request_id)
         """
         try:
+            # Получаем пользователя по Telegram ID
+            user = await self.supabase.fetch_user_by_telegram_id(requester_id)
+            if not user:
+                return False, "User not found.", None
+            user_uuid = user['id']
+
             # Check if user has free requests remaining
-            success, message = await user_service.use_free_request(requester_id)
+            success = await user_service.add_free_request(requester_id)
             if not success:
-                return False, message, None
+                return False, "Failed to use free request.", None
 
             # Create request record
             request_data = {
-                'requester_id': requester_id,
+                'requester_id': user_uuid,  # UUID вместо telegram_id
                 'description_text': description,
                 'status': REQUEST_STATUS_OPEN,
                 'created_at': datetime.utcnow().isoformat(),
@@ -58,7 +63,7 @@ class RequestService:
                 await user_service.add_free_request(requester_id)
                 return False, "Failed to create request. Please try again.", None
 
-            logger.info(f"Created request {request_id} for user {requester_id}")
+            logger.info(f"Created request {request_id} for user {user_uuid}")
             return True, "Request created successfully!", request_id
 
         except Exception as e:
@@ -86,7 +91,13 @@ class RequestService:
             List of request data
         """
         try:
-            return await self.supabase.fetch_user_requests(user_id, status)
+            # Получаем пользователя по Telegram ID
+            user = await self.supabase.fetch_user_by_telegram_id(user_id)
+            if not user:
+                logger.error(f"User not found: {user_id}")
+                return []
+            user_uuid = user['id']
+            return await self.supabase.fetch_user_requests(user_uuid, status)
         except Exception as e:
             logger.error(f"Error fetching requests for user {user_id}: {e}")
             return []

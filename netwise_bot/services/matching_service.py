@@ -82,59 +82,71 @@ class MatchingService:
             List of potential helpers with their match scores
         """
         try:
-            # Extract keywords from request
-            keywords = await self.extract_keywords_from_text(request_description)
-            if not keywords:
-                logger.warning("No keywords extracted from request description")
+            # Get user by Telegram ID
+            user = await supabase_client.fetch_user_by_telegram_id(requester_id)
+            if not user:
+                logger.error(f"User not found for Telegram ID: {requester_id}")
                 return []
 
             # Get user's connections
-            connections = await graph_service.get_user_connections(requester_id)
+            connections = await graph_service.get_connections(user['id'])
             if not connections:
-                logger.info(f"No connections found for user {requester_id}")
+                logger.info(f"No connections found for user {user['id']}")
                 return []
 
-            # Get profiles for all connections
+            # Extract keywords from request description
+            keywords = await self.extract_keywords_from_text(request_description)
+            if not keywords:
+                logger.info("No keywords extracted from request description")
+                return []
+
             potential_helpers = []
             for connection in connections:
-                # Skip if connection is not active
-                if not connection.get('is_active_in_search', True):
-                    continue
-
-                helper_id = connection['user2_id']
-                connection_type = connection['connection_type']
-                trust_score = connection['trust_score']
-
+                # Determine which user is the helper
+                helper_id = connection['user2_id'] if connection['user1_id'] == user['id'] else connection['user1_id']
+                
                 # Get helper's profile
-                profile = await user_service.get_profile(helper_id)
-                if not profile:
+                helper = await supabase_client.get_user_by_id(helper_id)
+                if not helper:
                     continue
 
-                # Calculate match score
-                score = await self._calculate_match_score(
-                    keywords,
-                    profile,
-                    connection_type,
-                    trust_score
-                )
+                # Calculate match score based on skills, interests, and goals
+                score = 0
+                
+                # Helper's skills matching request keywords
+                if helper.get('skills'):
+                    for skill in helper['skills']:
+                        if skill and any(keyword in skill.lower() for keyword in keywords):
+                            score += 2
+
+                # Helper's interests matching request keywords
+                if helper.get('interests'):
+                    for interest in helper['interests']:
+                        if interest and any(keyword in interest.lower() for keyword in keywords):
+                            score += 1
+
+                # Helper's goals matching request keywords
+                if helper.get('goals'):
+                    for goal in helper['goals']:
+                        if goal and any(keyword in goal.lower() for keyword in keywords):
+                            score += 1
 
                 if score > 0:
                     potential_helpers.append({
                         'user_id': helper_id,
-                        'name': profile.get('name', 'Unknown'),
-                        'score': score,
-                        'connection_type': connection_type,
-                        'trust_score': trust_score,
-                        'profile': profile
+                        'name': helper.get('name', 'Unknown'),
+                        'role': helper.get('role', ''),
+                        'connection_type': connection.get('connection_type', ''),
+                        'trust_score': connection.get('trust_score', 0),
+                        'score': score
                     })
 
-            # Sort by score in descending order
+            # Sort by score
             potential_helpers.sort(key=lambda x: x['score'], reverse=True)
-            
             return potential_helpers
 
         except Exception as e:
-            logger.error(f"Error finding keyword matches: {e}")
+            logger.error(f"Error finding keyword matches: {str(e)}")
             return []
 
     async def _calculate_match_score(
