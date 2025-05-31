@@ -39,9 +39,9 @@ async def main():
     dp.update.middleware(ActivityMiddleware(user_service))
     
     # Register routers with dependencies
-    dp.include_router(common.router)
-    dp.include_router(profile.router)
     dp.include_router(connections.router)
+    dp.include_router(profile.router)
+    dp.include_router(common.router)
     
     # Set up dependency injection
     dp["user_service"] = user_service

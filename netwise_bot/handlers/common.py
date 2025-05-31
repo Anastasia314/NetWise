@@ -1,17 +1,22 @@
 from aiogram import Router, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
+import logging
 from ..services.user_service import UserService
 from ..services.graph_service import GraphService
-from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_main_menu_keyboard, get_search_settings_keyboard
+from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_settings_keyboard
 from ..states.profile_states import ProfileStates
 from ..handlers.profile import show_profile
+from ..keyboards.main_menu import get_main_menu_keyboard, get_profile_menu_keyboard, get_main_menu_inline_keyboard, get_menu_button
 
 # Create router for common handlers
 router = Router()
 
 # Initialize UserService
 user_service = UserService()
+
+# Get logger
+logger = logging.getLogger(__name__)
 
 @router.message(Command("start"))
 async def handle_start(
@@ -20,106 +25,53 @@ async def handle_start(
     user_service: UserService = None,
     graph_service: GraphService = None
 ):
-    """Handle /start command and invite links."""
-    # Check if this is an invite link
-    args = message.text.split()
-    if len(args) > 1 and args[1].startswith("invite_"):
-        try:
-            # Extract inviter's Telegram ID
-            inviter_telegram_id = int(args[1].split("_")[1])
-            
-            # Prevent self-invites
-            if inviter_telegram_id == message.from_user.id:
-                await message.answer(
-                    "Welcome to NetWise! You can't invite yourself. "
-                    "Let's get started with your profile setup."
-                )
-            else:
-                # Get or create the new user
-                user = await user_service.get_or_create_user(
-                    message.from_user.id,
-                    message.from_user.full_name
-                )
-                
-                if not user:
-                    await message.answer(
-                        "Welcome to NetWise! There was an error creating your account. "
-                        "Please try again later."
-                    )
-                    return
-                    
-                # Check if connection already exists
-                existing_connection = await graph_service.get_connection(
-                    str(inviter_telegram_id),
-                    str(message.from_user.id)
-                )
-                
-                if existing_connection:
-                    await message.answer(
-                        "Welcome to NetWise! You're already connected with this user. "
-                        "Let's continue with your profile setup."
-                    )
-                else:
-                    # Process the invite
-                    if await graph_service.process_invite(inviter_telegram_id, message.from_user.id):
-                        # Get inviter's name for the message
-                        inviter = await user_service.get_profile(inviter_telegram_id)
-                        inviter_name = inviter.get('name', 'A user') if inviter else 'A user'
-                        
-                        await message.answer(
-                            f"Welcome to NetWise! You've been invited by {inviter_name}. "
-                            "You're now connected in the network!"
-                        )
-                        
-                        # Notify the inviter
-                        try:
-                            await message.bot.send_message(
-                                inviter_telegram_id,
-                                f"Great news! {message.from_user.full_name} has joined NetWise through your invite link!"
-                            )
-                        except Exception as e:
-                            print(f"Could not notify inviter: {e}")
-                    else:
-                        await message.answer(
-                            "Welcome to NetWise! There was an error processing your invite. "
-                            "You can still use the bot normally."
-                        )
-        except (ValueError, IndexError):
-            # If there's any error parsing the invite, just proceed with normal start
+    """Handle /start command."""
+    try:
+        logger.info(f"Processing /start command for user {message.from_user.id}")
+        
+        # Get or create user
+        user = await user_service.get_or_create_user(
+            message.from_user.id,
+            message.from_user.full_name
+        )
+        
+        if not user:
+            logger.error(f"Failed to create user for {message.from_user.id}")
             await message.answer(
-                "Welcome to NetWise! The invite link appears to be invalid. "
-                "Let's get started with your profile setup."
+                "Welcome to NetWise! There was an error creating your account. "
+                "Please try again later."
             )
-    
-    # Get or create user
-    user = await user_service.get_or_create_user(
-        message.from_user.id,
-        message.from_user.full_name
-    )
-    
-    if not user:
+            return
+        
+        # Check if user has a profile
+        profile = await user_service.get_profile(message.from_user.id)
+        logger.info(f"User profile status: {'exists' if profile else 'not found'}")
+        
+        # Сначала отправляем приветствие
+        await message.answer("👋 Welcome to NetWise!")
+        
+        if not profile:
+            # New user without profile
+            logger.info(f"New user {message.from_user.id} - showing initial setup")
+            await message.answer(
+                "Let's create your professional profile to help you "
+                "connect with the right people.",
+                reply_markup=get_initial_setup_keyboard()
+            )
+        else:
+            # Existing user with profile
+            logger.info(f"Existing user {message.from_user.id} - showing profile menu")
+            await message.answer(
+                f"Welcome back, {profile.get('name', 'there')}! What would you like to do?",
+                reply_markup=get_profile_menu_keyboard()
+            )
+        
+        # Добавляем кнопку меню в нижнюю панель
+    except Exception as e:
+        logger.error(f"Error in handle_start: {e}", exc_info=True)
         await message.answer(
-            "Welcome to NetWise! There was an error creating your account. "
+            "Sorry, there was an error processing your request. "
             "Please try again later."
-        )
-        return
-    
-    # Check if user has a profile
-    profile = await user_service.get_profile(message.from_user.id)
-    
-    if not profile:
-        # New user without profile
-        await message.answer(
-            "Welcome to NetWise! Let's create your professional profile to help you "
-            "connect with the right people.",
-            reply_markup=get_initial_setup_keyboard()
-        )
-    else:
-        # Existing user with profile
-        await message.answer(
-            f"Welcome back to NetWise, {profile.get('name', 'there')}! "
-            "What would you like to do?",
-            reply_markup=get_main_menu_keyboard()
         )
 
 @router.message(Command("help"))
@@ -217,4 +169,83 @@ async def process_view_profile_callback(callback: types.CallbackQuery):
 async def process_edit_profile_callback(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ProfileStates.name)
-    await callback.message.answer("Let's update your profile! What's your name or preferred display name?") 
+    await callback.message.answer("Let's update your profile! What's your name or preferred display name?")
+
+@router.callback_query(lambda c: c.data == "profile_view")
+async def handle_profile_view(callback: types.CallbackQuery):
+    await show_profile(callback.message, telegram_id=callback.from_user.id)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "profile_edit")
+async def handle_profile_edit(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Let's update your profile! What's your name or preferred display name?")
+    await state.set_state(ProfileStates.name)
+    await callback.answer()
+
+@router.message(lambda m: m.text == "Generate Invite")
+async def handle_generate_invite_menu(message: types.Message):
+    # Триггерим колбэк generate_invite
+    fake_callback = types.CallbackQuery(
+        id="menu_fake_invite",
+        from_user=message.from_user,
+        message=message,
+        data="generate_invite"
+    )
+    await generate_invite_link(fake_callback)
+
+@router.message(lambda m: m.text == "Toggle Search")
+async def handle_toggle_search_menu(message: types.Message):
+    # Триггерим колбэк toggle_search (реализуйте обработчик отдельно)
+    fake_callback = types.CallbackQuery(
+        id="menu_fake_toggle_search",
+        from_user=message.from_user,
+        message=message,
+        data="toggle_search"
+    )
+    # Если есть обработчик toggle_search, вызовите его здесь
+    # await handle_toggle_search(fake_callback)
+    await message.answer("🔍 Search toggled (stub handler)")
+
+@router.message(Command("myprofile"))
+async def cmd_myprofile(message: types.Message):
+    """Handle /myprofile command."""
+    await show_profile(message, telegram_id=message.from_user.id)
+
+@router.callback_query(F.data == "help")
+async def handle_help_callback(callback: types.CallbackQuery):
+    """Handle help button click."""
+    help_text = (
+        "Need help with NetWise? Here's what you can do:\n\n"
+        "1. Check your profile and connections\n"
+        "2. Generate invite links for new connections\n"
+        "3. Toggle your visibility in search\n\n"
+        "If you encounter any issues or have questions, "
+        "please contact us at:\n"
+        "📧 kodable.pro.info@gmail.com"
+    )
+    await callback.message.answer(help_text)
+    await callback.answer()
+
+@router.message(Command("menu"))
+async def cmd_menu(message: types.Message):
+    """Handle /menu command."""
+    await message.answer(
+        "Главное меню:",
+        reply_markup=get_main_menu_inline_keyboard()
+    )
+
+@router.callback_query(F.data == "main_menu")
+async def handle_main_menu_callback(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "Главное меню:",
+        reply_markup=get_main_menu_inline_keyboard()
+    )
+    await callback.answer()
+
+@router.message(F.text == "🏠 Menu")
+async def handle_menu_button(message: types.Message):
+    """Handle menu button click from the bottom panel."""
+    await message.answer(
+        "Главное меню:",
+        reply_markup=get_main_menu_inline_keyboard()
+    ) 

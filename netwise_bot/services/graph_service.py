@@ -1,5 +1,8 @@
 from typing import List, Dict, Any, Optional
 from .supabase_client import SupabaseClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GraphService:
     def __init__(self, supabase_client: SupabaseClient):
@@ -11,7 +14,7 @@ class GraphService:
         user2_id: str,
         connection_type: str,
         trust_score: int,
-        status: str = "pending"
+        status: str = "active"
     ) -> Optional[Dict[str, Any]]:
         """
         Create a new connection between two users.
@@ -19,32 +22,27 @@ class GraphService:
         Args:
             user1_id: ID of the first user
             user2_id: ID of the second user
-            connection_type: Type of connection ('worked_together', 'intro_made', 'met_at_event', 'other')
+            connection_type: Type of connection
             trust_score: Trust score (1-3)
-            status: Connection status ('pending', 'active', 'blocked')
+            status: Connection status (default: "active")
             
         Returns:
-            Dict containing the created connection data or None if creation failed
+            Dict containing connection data if successful, None otherwise
         """
-        # Validate trust score
-        if not 1 <= trust_score <= 3:
-            raise ValueError("Trust score must be between 1 and 3")
+        try:
+            logger.info(f"Creating connection: user1={user1_id}, user2={user2_id}, type={connection_type}, trust={trust_score}")
             
-        # Validate connection type
-        valid_types = ['worked_together', 'intro_made', 'met_at_event', 'other']
-        if connection_type not in valid_types:
-            raise ValueError(f"Connection type must be one of: {', '.join(valid_types)}")
-            
-        # Validate status
-        valid_statuses = ['pending', 'active', 'blocked']
-        if status not in valid_statuses:
-            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
-            
-        # Ensure user1_id is always the smaller ID to maintain consistency
-        if user1_id > user2_id:
-            user1_id, user2_id = user2_id, user1_id
-            
-        return await self._client.create_connection(
+            # Validate connection type and trust score
+            if not self.validate_connection_type(connection_type):
+                logger.error(f"Invalid connection type: {connection_type}")
+                raise ValueError("Invalid connection type")
+                
+            if not self.validate_trust_score(trust_score):
+                logger.error(f"Invalid trust score: {trust_score}")
+                raise ValueError("Invalid trust score")
+                
+            # Create connection using supabase client
+            connection = await self._client.create_connection(
             user1_id=user1_id,
             user2_id=user2_id,
             connection_type=connection_type,
@@ -52,16 +50,27 @@ class GraphService:
             status=status
         )
 
-    async def get_connections(self, user_id: str) -> List[Dict[str, Any]]:
+            logger.info(f"Connection created: {connection}")
+            return connection
+            
+        except Exception as e:
+            logger.error(f"Error creating connection: {e}", exc_info=True)
+            return None
+
+    async def get_connections(self, user_id: str, is_telegram_id: bool = False) -> List[Dict[str, Any]]:
         """
         Get all connections for a user.
-        
         Args:
-            user_id: ID of the user
-            
+            user_id: ID of the user (UUID or Telegram ID)
+            is_telegram_id: If True, user_id is Telegram ID and will be converted to UUID
         Returns:
             List of connections where the user is either user1 or user2
         """
+        if is_telegram_id:
+            user = await self._client.fetch_user_by_telegram_id(user_id)
+            if not user:
+                return []
+            user_id = user['id']
         return await self._client.fetch_connections(user_id)
 
     async def get_connection(self, user1_id: str, user2_id: str) -> Optional[Dict[str, Any]]:
@@ -109,58 +118,65 @@ class GraphService:
             print(f"Error generating invite link: {e}")
             return None
 
-    async def process_invite(self, inviter_telegram_id: int, invitee_telegram_id: int) -> bool:
+    async def process_invite(
+        self,
+        inviter_telegram_id: int,
+        invitee_telegram_id: int
+    ) -> Optional[Dict[str, Any]]:
         """
-        Process an invite when a new user joins through an invite link.
+        Process an invite between two users.
         
         Args:
-            inviter_telegram_id: Telegram ID of the user who sent the invite
-            invitee_telegram_id: Telegram ID of the user who accepted the invite
+            inviter_telegram_id: Telegram ID of the inviter
+            invitee_telegram_id: Telegram ID of the invitee
             
         Returns:
-            bool: True if invite was processed successfully, False otherwise
+            Dict containing user IDs and inviter name if successful, None otherwise
         """
         try:
-            # Validate that both users exist
+            logger.info(f"Processing invite: inviter={inviter_telegram_id}, invitee={invitee_telegram_id}")
+            
+            # Get users by telegram IDs
             inviter = await self._client.fetch_user_by_telegram_id(inviter_telegram_id)
             invitee = await self._client.fetch_user_by_telegram_id(invitee_telegram_id)
             
-            if not inviter or not invitee:
-                print(f"One or both users not found: inviter={bool(inviter)}, invitee={bool(invitee)}")
-                return False
+            logger.info(f"Fetched users: inviter={inviter}, invitee={invitee}")
+            
+            if not inviter:
+                logger.error(f"Inviter not found: {inviter_telegram_id}")
+                return None
                 
+            if not invitee:
+                logger.error(f"Invitee not found: {invitee_telegram_id}")
+                return None
+                
+            # Get UUIDs
+            inviter_uuid = inviter['id']
+            invitee_uuid = invitee['id']
+            logger.info(f"User UUIDs: inviter={inviter_uuid}, invitee={invitee_uuid}")
+            
             # Check if connection already exists
-            existing_connection = await self.get_connection(
-                str(inviter_telegram_id),
-                str(invitee_telegram_id)
-            )
+            existing = await self._client.fetch_connections(inviter_uuid)
+            logger.info(f"Existing connections: {existing}")
             
-            if existing_connection:
-                print(f"Connection already exists between {inviter_telegram_id} and {invitee_telegram_id}")
-                return True  # Return True since the connection exists
-                
-            # Create a connection between the users
-            connection = await self.create_connection(
-                user1_id=str(inviter_telegram_id),
-                user2_id=str(invitee_telegram_id),
-                connection_type="intro_made",
-                trust_score=1,  # Default trust score for new connections
-                status="active"  # Direct connection through invite
-            )
+            for conn in existing:
+                if (conn['user1_id'] == inviter_uuid and conn['user2_id'] == invitee_uuid) or \
+                   (conn['user1_id'] == invitee_uuid and conn['user2_id'] == inviter_uuid):
+                    logger.info(f"Connection already exists between {inviter_uuid} and {invitee_uuid}")
+                    return None
             
-            if not connection:
-                print(f"Failed to create connection between {inviter_telegram_id} and {invitee_telegram_id}")
-                return False
-                
-            # Update last active for both users
-            await self._client.update_user_last_active(inviter_telegram_id)
-            await self._client.update_user_last_active(invitee_telegram_id)
-            
-            return True
+            # Return user IDs for FSM flow
+            result = {
+                'user1_id': inviter_uuid,
+                'user2_id': invitee_uuid,
+                'inviter_name': inviter.get('name', 'User')
+            }
+            logger.info(f"Returning result: {result}")
+            return result
             
         except Exception as e:
-            print(f"Error processing invite: {e}")
-            return False 
+            logger.error(f"Error processing invite: {e}", exc_info=True)
+            return None
 
     async def update_connection_details(
         self,
@@ -210,7 +226,7 @@ class GraphService:
 
     def validate_connection_type(self, connection_type: str) -> bool:
         """
-        Validate a connection type.
+        Validate if the connection type is valid.
         
         Args:
             connection_type: Type of connection to validate
@@ -218,12 +234,12 @@ class GraphService:
         Returns:
             bool: True if valid, False otherwise
         """
-        valid_types = ['worked_together', 'intro_made', 'met_at_event', 'other']
+        valid_types = {'worked_together', 'intro_made', 'personal_contact', 'chat_help'}
         return connection_type in valid_types
 
     def validate_trust_score(self, trust_score: int) -> bool:
         """
-        Validate a trust score.
+        Validate if the trust score is valid.
         
         Args:
             trust_score: Trust score to validate
@@ -231,77 +247,77 @@ class GraphService:
         Returns:
             bool: True if valid, False otherwise
         """
-        return 1 <= trust_score <= 3 
+        return isinstance(trust_score, int) and 1 <= trust_score <= 3
 
     async def get_friends(
         self,
         telegram_id: int,
-        trust_score: Optional[int] = None,
-        connection_type: Optional[str] = None,
-        sort_by: str = "name",
         page: int = 1,
-        per_page: int = 10
+        per_page: int = 10,
+        trust_score: Optional[int] = None,
+        sort_by: str = "name"
     ) -> Dict[str, Any]:
         """
-        Get first-degree connections (friends) for a user with filtering and pagination.
+        Get user's connections with pagination and filtering.
         
         Args:
             telegram_id: Telegram ID of the user
-            trust_score: Optional filter by trust score
-            connection_type: Optional filter by connection type
-            sort_by: Field to sort by ('name', 'trust_score', 'created_at')
             page: Page number (1-based)
             per_page: Number of items per page
+            trust_score: Optional trust score filter
+            sort_by: Field to sort by (name, trust_score, created_at)
             
         Returns:
-            Dict containing:
-            - connections: List of connection data with user details
-            - total: Total number of connections
-            - page: Current page
-            - total_pages: Total number of pages
+            Dict containing connections list and pagination info
         """
         try:
-            # Get user ID from telegram_id
+            logger.info(f"Getting friends for user {telegram_id}, page {page}")
+            
+            # Get user by telegram ID
             user = await self._client.fetch_user_by_telegram_id(telegram_id)
             if not user:
-                raise ValueError("User not found")
+                logger.error(f"User not found: {telegram_id}")
+                return {'connections': [], 'total': 0, 'page': 1, 'total_pages': 1}
                 
-            # Build query filters
-            filters = []
+            # Get all connections
+            connections = await self._client.fetch_connections(user['id'])
+            logger.info(f"Found {len(connections)} connections")
+            
+            # Filter by trust score if specified
             if trust_score is not None:
-                filters.append(f"trust_score = {trust_score}")
-            if connection_type is not None:
-                filters.append(f"connection_type = '{connection_type}'")
-                
-            # Get connections with pagination
-            connections = await self._client.fetch_connections(
-                user['id'],
-                filters=filters,
-                sort_by=sort_by,
-                page=page,
-                per_page=per_page
-            )
-            
-            # Get total count for pagination
-            total = await self._client.count_connections(user['id'], filters=filters)
-            
-            # Calculate total pages
-            total_pages = (total + per_page - 1) // per_page
+                connections = [c for c in connections if c['trust_score'] == trust_score]
+                logger.info(f"Filtered to {len(connections)} connections with trust score {trust_score}")
             
             # Get user details for each connection
-            for conn in connections['data']:
+            for conn in connections:
                 other_user_id = conn['user2_id'] if conn['user1_id'] == user['id'] else conn['user1_id']
-                other_user = await self._client.fetch_user_by_id(other_user_id)
-                if other_user:
-                    conn['user_details'] = other_user
-                    
+                other_user = await self._client.get_user_by_id(other_user_id)
+                conn['user_details'] = other_user
+                
+            # Sort connections
+            if sort_by == "name":
+                connections.sort(key=lambda x: x['user_details'].get('name', ''))
+            elif sort_by == "trust_score":
+                connections.sort(key=lambda x: x['trust_score'], reverse=True)
+            elif sort_by == "created_at":
+                connections.sort(key=lambda x: x['created_at'], reverse=True)
+                
+            # Calculate pagination
+            total = len(connections)
+            total_pages = (total + per_page - 1) // per_page
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            
+            # Get page of connections
+            page_connections = connections[start_idx:end_idx]
+            
             return {
-                'connections': connections['data'],
+                'connections': page_connections,
                 'total': total,
                 'page': page,
                 'total_pages': total_pages
             }
             
         except Exception as e:
-            print(f"Error getting friends: {e}")
-            raise 
+            logger.error(f"Error getting friends: {e}", exc_info=True)
+            return {'connections': [], 'total': 0, 'page': 1, 'total_pages': 1} 

@@ -6,6 +6,7 @@ from ..services.user_service import UserService
 from ..services.connection_service import ConnectionService
 from ..config import get_bot_username
 from ..services.graph_service import GraphService
+from ..services.supabase_client import SupabaseClient
 from ..states.connection_states import ConnectionTrustStates
 from ..keyboards.connections_keyboards import get_connection_type_keyboard, get_trust_score_keyboard, get_connection_list_keyboard, get_connection_stats_keyboard
 import logging
@@ -15,9 +16,10 @@ from typing import Dict, Any
 router = Router()
 
 # Initialize services
+supabase_client = SupabaseClient()
 user_service = UserService()
 connection_service = ConnectionService()
-graph_service = GraphService()
+graph_service = GraphService(supabase_client)
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -31,16 +33,13 @@ async def generate_invite_link(callback: CallbackQuery):
         if not user:
             await callback.answer("❌ Error: User not found", show_alert=True)
             return
-            
-        # Generate invite link
+        # Generate invite link using Telegram ID
         bot_username = get_bot_username()
-        invite_link = f"https://t.me/{bot_username}?start=invite_{user['id']}"
-        
+        invite_link = f"https://t.me/{bot_username}?start=invite_{user['telegram_id']}"
         # Create keyboard with copy button
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📋 Copy Link", callback_data="copy_invite")]
         ])
-        
         await callback.message.answer(
             f"🔗 *Your Invite Link*\n\n"
             f"Share this link with others to connect with them:\n"
@@ -50,7 +49,6 @@ async def generate_invite_link(callback: CallbackQuery):
             reply_markup=keyboard
         )
         await callback.answer()
-        
     except Exception as e:
         logger.error(f"Error generating invite link: {e}")
         await callback.answer("❌ Error generating invite link", show_alert=True)
@@ -64,247 +62,69 @@ async def copy_invite_link(callback: CallbackQuery):
         if not user:
             await callback.answer("❌ Error: User not found", show_alert=True)
             return
-            
-        # Generate invite link
+        # Generate invite link using Telegram ID
         bot_username = get_bot_username()
-        invite_link = f"https://t.me/{bot_username}?start=invite_{user['id']}"
-        
+        invite_link = f"https://t.me/{bot_username}?start=invite_{user['telegram_id']}"
         # Send link as a separate message for easy copying
         await callback.message.answer(
             f"🔗 *Click to copy:*\n`{invite_link}`",
             parse_mode="Markdown"
         )
         await callback.answer("✅ Link sent as a separate message for easy copying")
-        
     except Exception as e:
         logger.error(f"Error copying invite link: {e}")
         await callback.answer("❌ Error copying invite link", show_alert=True)
 
 @router.message(CommandStart(deep_link=True))
-async def handle_invite_link(message: Message):
-    """Handle invite link clicks."""
+async def handle_deep_link(message: Message, state: FSMContext):
+    logger.info(f"Processing deep link message: {message.text}")
+    
     try:
         # Extract inviter ID from deep link
-        args = message.get_args().split('_')
-        if len(args) != 2 or args[0] != 'invite':
+        parts = message.text.split(maxsplit=1)
+        args = parts[1] if len(parts) > 1 else ""
+        logger.info(f"Extracted args: {args}")
+        if not args or not args.startswith("invite_"):
+            logger.info("No invite args found")
             return
-            
-        inviter_id = args[1]
+        inviter_id = args.split("invite_")[1]
+        logger.info(f"Extracted inviter ID: {inviter_id}")
         
-        # Get inviter's data
-        inviter = await user_service.get_user_by_id(inviter_id)
-        if not inviter:
-            await message.answer("❌ Invalid invite link")
+        # Get inviter and invitee data
+        inviter = await graph_service._client.fetch_user_by_telegram_id(int(inviter_id))
+        invitee = await user_service.get_or_create_user(message.from_user.id)
+        
+        if not inviter or not invitee:
+            logger.error(f"User not found: inviter={inviter}, invitee={invitee}")
+            await message.answer("❌ Error: User not found")
             return
-            
-        # Get or create current user
-        current_user = await user_service.get_or_create_user(message.from_user.id)
-        if not current_user:
-            await message.answer("❌ Error creating user profile")
-            return
-            
-        # Create connection
-        success = await connection_service.create_connection(
-            user1_id=inviter_id,
-            user2_id=current_user['id'],
-            connection_type="invite",
-            trust_score=10
+        # Check if connection already exists
+        existing_connection = await graph_service.get_connection(
+            inviter['id'],
+            invitee['id']
         )
-        
-        if success:
-            # Notify both users
+        if existing_connection:
+            logger.info(f"Connection already exists between {inviter['id']} and {invitee['id']}")
             await message.answer(
-                f"✅ Successfully connected with {inviter.get('name', 'Unknown')}!"
-            )
-            
-            # Notify inviter (if they're online)
-            try:
-                await message.bot.send_message(
-                    chat_id=inviter['telegram_id'],
-                    text=f"✅ {current_user.get('name', 'Someone')} has joined through your invite link!"
-                )
-            except Exception as e:
-                logger.error(f"Error notifying inviter: {e}")
-        else:
-            await message.answer("❌ Error creating connection")
-            
-    except Exception as e:
-        logger.error(f"Error handling invite link: {e}")
-        await message.answer("❌ Error processing invite link")
-
-@router.callback_query(lambda c: c.data == "my_connections")
-async def show_connections(callback: CallbackQuery):
-    """Show user's connections."""
-    try:
-        # Get user data
-        user = await user_service.get_or_create_user(callback.from_user.id)
-        if not user:
-            await callback.answer("❌ Error: User not found", show_alert=True)
-            return
-            
-        # Get connections
-        connections = await connection_service.get_user_connections(user['id'])
-        
-        if not connections:
-            await callback.message.answer(
-                "👥 *Your Connections*\n\n"
-                "You don't have any connections yet.\n"
-                "Use the invite link to connect with others!",
-                parse_mode="Markdown"
+                f"✅ You are already connected with {inviter.get('name', 'this user')}!"
             )
             return
-            
-        # Format connections list
-        connections_text = "👥 *Your Connections:*\n\n"
-        for conn in connections:
-            other_user_id = conn['user2_id'] if conn['user1_id'] == user['id'] else conn['user1_id']
-            other_user = await user_service.get_user_by_id(other_user_id)
-            
-            if other_user:
-                connections_text += (
-                    f"• *{other_user.get('name', 'Unknown')}*\n"
-                    f"  Role: {other_user.get('role', 'Not set')}\n"
-                    f"  Industry: {other_user.get('industry', 'Not set')}\n"
-                    f"  Trust Score: {conn.get('trust_score', 0)}\n\n"
-                )
-        
-        await callback.message.answer(
-            connections_text,
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-        
-    except Exception as e:
-        logger.error(f"Error showing connections: {e}")
-        await callback.answer("❌ Error showing connections", show_alert=True)
-
-@router.callback_query(F.data.startswith("set_connection_details_"))
-async def start_connection_details(
-    callback: types.CallbackQuery,
-    state: FSMContext
-):
-    """Start the connection details flow."""
-    try:
-        # Extract user IDs from callback data
-        _, user1_id, user2_id = callback.data.split("_")
-        
         # Store user IDs in state
         await state.update_data(
-            user1_id=user1_id,
-            user2_id=user2_id
+            user1_id=inviter['id'],
+            user2_id=invitee['id']
         )
-        
         # Set initial state
         await state.set_state(ConnectionTrustStates.connection_type)
-        
         # Send connection type keyboard
-        await callback.message.edit_text(
-            "How do you know this person?",
+        await message.answer(
+            f"Как вы знаете {inviter.get('name', 'this person')}?\nПожалуйста, выберите тип связи:",
             reply_markup=get_connection_type_keyboard()
         )
-        
+        logger.info("Sent connection type keyboard")
     except Exception as e:
-        print(f"Error starting connection details: {e}")
-        await callback.message.edit_text(
-            "Sorry, there was an error. Please try again later."
-        )
-    finally:
-        await callback.answer()
-
-@router.callback_query(F.data.startswith("conn_type_"))
-async def process_connection_type(
-    callback: types.CallbackQuery,
-    state: FSMContext
-):
-    """Process connection type selection."""
-    try:
-        # Extract connection type from callback data
-        connection_type = callback.data.replace("conn_type_", "")
-        
-        # Validate connection type
-        if not graph_service.validate_connection_type(connection_type):
-            await callback.answer("Invalid connection type selected.")
-            return
-            
-        # Store connection type in state
-        await state.update_data(connection_type=connection_type)
-        
-        # Move to trust score state
-        await state.set_state(ConnectionTrustStates.trust_score)
-        
-        # Send trust score keyboard
-        await callback.message.edit_text(
-            "What's your level of trust with this person?",
-            reply_markup=get_trust_score_keyboard()
-        )
-        
-    except Exception as e:
-        print(f"Error processing connection type: {e}")
-        await callback.message.edit_text(
-            "Sorry, there was an error. Please try again later."
-        )
-    finally:
-        await callback.answer()
-
-@router.callback_query(F.data.startswith("trust_score_"))
-async def process_trust_score(
-    callback: types.CallbackQuery,
-    state: FSMContext
-):
-    """Process trust score selection and complete the flow."""
-    try:
-        # Extract trust score from callback data
-        trust_score = int(callback.data.replace("trust_score_", ""))
-        
-        # Validate trust score
-        if not graph_service.validate_trust_score(trust_score):
-            await callback.answer("Invalid trust score selected.")
-            return
-            
-        # Get all data from state
-        data = await state.get_data()
-        user1_id = data['user1_id']
-        user2_id = data['user2_id']
-        connection_type = data['connection_type']
-        
-        # Update connection in database
-        connection = await graph_service.update_connection_details(
-            user1_id=user1_id,
-            user2_id=user2_id,
-            connection_type=connection_type,
-            trust_score=trust_score
-        )
-        
-        if connection:
-            # Get user names for the message
-            user1 = await user_service.get_profile(int(user1_id))
-            user2 = await user_service.get_profile(int(user2_id))
-            user1_name = user1.get('name', 'User') if user1 else 'User'
-            user2_name = user2.get('name', 'User') if user2 else 'User'
-            
-            # Send success message
-            await callback.message.edit_text(
-                f"Connection details updated successfully!\n\n"
-                f"Connection between {user1_name} and {user2_name}:\n"
-                f"Type: {connection_type.replace('_', ' ').title()}\n"
-                f"Trust Level: {trust_score}"
-            )
-        else:
-            await callback.message.edit_text(
-                "Sorry, there was an error updating the connection details. "
-                "Please try again later."
-            )
-            
-    except ValueError as e:
-        await callback.message.edit_text(str(e))
-    except Exception as e:
-        print(f"Error processing trust score: {e}")
-        await callback.message.edit_text(
-            "Sorry, there was an error. Please try again later."
-        )
-    finally:
-        await callback.answer()
-        await state.clear()
+        logger.error(f"Error in handle_deep_link: {e}", exc_info=True)
+        await message.answer("❌ Error processing invite. Please try again later")
 
 @router.message(Command("myconnections"))
 async def show_my_connections(message: Message):
@@ -360,6 +180,142 @@ async def show_my_connections(message: Message):
     except Exception as e:
         logger.error(f"Error showing connections: {e}")
         await message.answer("❌ Error showing connections")
+
+@router.callback_query(F.data.startswith("set_connection_details_"))
+async def start_connection_details(
+    callback: types.CallbackQuery,
+    state: FSMContext
+):
+    """Start the connection details flow."""
+    try:
+        # Extract user IDs from callback data
+        _, user1_id, user2_id = callback.data.split("_")
+        
+        # Store user IDs in state
+        await state.update_data(
+            user1_id=user1_id,
+            user2_id=user2_id
+        )
+        
+        # Set initial state
+        await state.set_state(ConnectionTrustStates.connection_type)
+        
+        # Send connection type keyboard
+        await callback.message.edit_text(
+            "How do you know this person?",
+            reply_markup=get_connection_type_keyboard()
+        )
+        
+    except Exception as e:
+        print(f"Error starting connection details: {e}")
+        await callback.message.edit_text(
+            "Sorry, there was an error. Please try again later."
+        )
+    finally:
+        await callback.answer()
+
+@router.callback_query(F.data.startswith("conn_type_"))
+async def process_connection_type(
+    callback: types.CallbackQuery,
+    state: FSMContext
+):
+    """Process connection type selection."""
+    try:
+        logger.info(f"Processing connection type selection: {callback.data}")
+        
+        # Extract connection type from callback data
+        connection_type = callback.data.replace("conn_type_", "")
+        logger.info(f"Selected connection type: {connection_type}")
+        
+        # Validate connection type
+        if not graph_service.validate_connection_type(connection_type):
+            logger.error(f"Invalid connection type: {connection_type}")
+            await callback.answer("Invalid connection type selected.")
+            return
+            
+        # Store connection type in state
+        await state.update_data(connection_type=connection_type)
+        logger.info(f"Stored connection type in state: {connection_type}")
+        
+        # Move to trust score state
+        await state.set_state(ConnectionTrustStates.trust_score)
+        logger.info("Set state to trust_score")
+        
+        # Send trust score keyboard
+        await callback.message.edit_text(
+            "What's your level of trust with this person?",
+            reply_markup=get_trust_score_keyboard()
+        )
+        logger.info("Sent trust score keyboard")
+        
+    except Exception as e:
+        logger.error(f"Error processing connection type: {e}", exc_info=True)
+        await callback.message.edit_text(
+            "Sorry, there was an error. Please try again later."
+        )
+    finally:
+        await callback.answer()
+
+@router.callback_query(F.data.startswith("trust_score_"))
+async def process_trust_score(
+    callback: types.CallbackQuery,
+    state: FSMContext
+):
+    """Process trust score selection and complete the flow."""
+    try:
+        logger.info(f"Processing trust score selection: {callback.data}")
+        
+        # Extract trust score from callback data
+        trust_score = int(callback.data.replace("trust_score_", ""))
+        logger.info(f"Selected trust score: {trust_score}")
+        
+        # Validate trust score
+        if not graph_service.validate_trust_score(trust_score):
+            logger.error(f"Invalid trust score: {trust_score}")
+            await callback.answer("Invalid trust score selected.")
+            return
+            
+        # Get all data from state
+        data = await state.get_data()
+        logger.info(f"Got data from state: {data}")
+        
+        user1_id = data['user1_id']
+        user2_id = data['user2_id']
+        connection_type = data['connection_type']
+        
+        # Create connection with selected details
+        connection = await graph_service.create_connection(
+            user1_id=user1_id,
+            user2_id=user2_id,
+            connection_type=connection_type,
+            trust_score=trust_score,
+            status="active"
+        )
+        logger.info(f"Created connection: {connection}")
+        
+        if connection:
+            # Clear state
+            await state.clear()
+            logger.info("Cleared state")
+            
+            # Send success message
+            await callback.message.edit_text(
+                "✅ Connection created successfully! You can now view your connections using /myconnections"
+            )
+            logger.info("Sent success message")
+        else:
+            logger.error("Failed to create connection")
+            await callback.message.edit_text(
+                "❌ Error creating connection. Please try again later."
+            )
+            
+    except Exception as e:
+        logger.error(f"Error processing trust score: {e}", exc_info=True)
+        await callback.message.edit_text(
+            "Sorry, there was an error. Please try again later."
+        )
+    finally:
+        await callback.answer()
 
 @router.callback_query(F.data.startswith("filter_"))
 async def handle_connection_filter(callback: CallbackQuery):
@@ -538,6 +494,62 @@ async def handle_back_to_connections(callback: CallbackQuery):
         await callback.answer("❌ Error returning to list")
     finally:
         await callback.answer()
+
+@router.callback_query(lambda c: c.data == "my_connections")
+async def handle_my_connections_button(callback: CallbackQuery):
+    """Handle My Connections button click."""
+    try:
+        # Get user data
+        user = await user_service.get_or_create_user(callback.from_user.id)
+        if not user:
+            await callback.answer("❌ Error: User not found", show_alert=True)
+            return
+            
+        # Get connections (first page)
+        result = await graph_service.get_friends(
+            telegram_id=callback.from_user.id,
+            page=1,
+            per_page=10
+        )
+        
+        if not result['connections']:
+            await callback.message.answer(
+                "👥 *Your Connections*\n\n"
+                "You don't have any connections yet.\n"
+                "Use the invite link to connect with others!",
+                parse_mode="Markdown"
+            )
+            return
+            
+        # Format connections list
+        connections_text = "👥 *Your Connections:*\n\n"
+        for conn in result['connections']:
+            user_details = conn.get('user_details', {})
+            connections_text += (
+                f"• *{user_details.get('name', 'Unknown')}*\n"
+                f"  Role: {user_details.get('role', 'Not set')}\n"
+                f"  Industry: {user_details.get('industry', 'Not set')}\n"
+                f"  Trust Score: {conn.get('trust_score', 0)}\n"
+                f"  Connection Type: {conn.get('connection_type', 'Unknown').replace('_', ' ').title()}\n\n"
+            )
+            
+        # Add pagination info
+        connections_text += f"\nPage {result['page']} of {result['total_pages']}"
+        
+        # Send message with keyboard
+        await callback.message.answer(
+            connections_text,
+            parse_mode="Markdown",
+            reply_markup=get_connection_list_keyboard(
+                page=result['page'],
+                total_pages=result['total_pages']
+            )
+        )
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Error showing connections: {e}")
+        await callback.answer("❌ Error showing connections", show_alert=True)
 
 async def format_and_send_connections(
     message: Message,

@@ -144,4 +144,20 @@ class UserService:
         if not isinstance(profile_data['interests'], list) or not all(isinstance(i, str) for i in profile_data['interests']):
             return False
 
-        return True 
+        return True
+
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get user by their UUID.
+        
+        Args:
+            user_id: UUID of the user
+            
+        Returns:
+            Dict containing user data or None if not found
+        """
+        try:
+            return await self._client.get_user_by_id(user_id)
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {e}")
+            return None 

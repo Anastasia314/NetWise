@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def get_connection_type_keyboard() -> InlineKeyboardMarkup:
-    """Create keyboard for selecting how users know each other."""
+    """Create keyboard for selecting connection type."""
     keyboard = [
         [
             InlineKeyboardButton(
@@ -128,6 +128,9 @@ def get_connection_list_keyboard(
     ]
     keyboard.append(action_row)
     
+    # Menu button
+    keyboard.append([InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def get_connection_stats_keyboard() -> InlineKeyboardMarkup:
@@ -144,6 +147,7 @@ def get_connection_stats_keyboard() -> InlineKeyboardMarkup:
                 text="📈 Export Stats",
                 callback_data="export_stats"
             )
-        ]
+        ],
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard) 
