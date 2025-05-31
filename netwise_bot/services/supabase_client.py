@@ -2,6 +2,8 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 from ..config import get_supabase_url, get_supabase_key
+from uuid import UUID
+from netwise_bot.utils.constants import FREE_REQUESTS_PER_MONTH
 
 class SupabaseClient:
     _instance = None
@@ -265,4 +267,197 @@ class SupabaseClient:
             return users[0] if users else None
         except Exception as e:
             print(f"Error getting user by id: {e}")
-            return None 
+            return None
+
+    async def create_request_record(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a new request record in the database.
+        
+        Args:
+            request_data: Dictionary containing request data
+            
+        Returns:
+            Created request record
+        """
+        try:
+            result = await self._client.table("requests").insert(request_data).execute()
+            return result.data[0]
+        except Exception as e:
+            print(f"Error creating request record: {str(e)}")
+            raise
+
+    async def fetch_user_requests(
+        self,
+        requester_id: int,
+        status: Optional[str] = None,
+        limit: int = 10,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch requests for a specific user.
+        
+        Args:
+            requester_id: Telegram ID of the user
+            status: Optional filter by request status
+            limit: Maximum number of requests to return
+            offset: Number of requests to skip
+            
+        Returns:
+            List of request records
+        """
+        try:
+            query = self._client.table("requests").select("*").eq("requester_id", requester_id)
+            
+            if status:
+                query = query.eq("status", status)
+                
+            result = await query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+            return result.data
+            
+        except Exception as e:
+            print(f"Error fetching user requests: {str(e)}")
+            raise
+
+    async def fetch_request(self, request_id: UUID) -> Optional[Dict[str, Any]]:
+        """
+        Fetch a specific request by ID.
+        
+        Args:
+            request_id: UUID of the request
+            
+        Returns:
+            Request record or None if not found
+        """
+        try:
+            result = await self._client.table("requests").select("*").eq("id", str(request_id)).execute()
+            return result.data[0] if result.data else None
+            
+        except Exception as e:
+            print(f"Error fetching request: {str(e)}")
+            raise
+
+    async def update_request_status(self, request_id: UUID, new_status: str) -> None:
+        """
+        Update the status of a request.
+        
+        Args:
+            request_id: UUID of the request
+            new_status: New status to set
+        """
+        try:
+            await self._client.table("requests").update({"status": new_status}).eq("id", str(request_id)).execute()
+            
+        except Exception as e:
+            print(f"Error updating request status: {str(e)}")
+            raise
+
+    async def delete_request(self, request_id: UUID) -> None:
+        """
+        Delete a request.
+        
+        Args:
+            request_id: UUID of the request to delete
+        """
+        try:
+            await self._client.table("requests").delete().eq("id", str(request_id)).execute()
+            
+        except Exception as e:
+            print(f"Error deleting request: {str(e)}")
+            raise
+
+    async def update_user_social_points(self, telegram_id: int, points_change: int) -> Optional[Dict[str, Any]]:
+        """
+        Update a user's social points.
+        
+        Args:
+            telegram_id: Telegram ID of the user
+            points_change: Amount to add (positive) or subtract (negative)
+            
+        Returns:
+            Updated user data or None if update failed
+        """
+        try:
+            # First get current points to ensure we don't go negative
+            user = await self.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                print(f"User {telegram_id} not found when updating social points")
+                return None
+                
+            current_points = user.get('social_points', 0)
+            new_points = current_points + points_change
+            
+            if new_points < 0:
+                print(f"Cannot update social points for user {telegram_id}: would result in negative points")
+                return None
+                
+            result = await self._client.table('users').update({
+                'social_points': new_points
+            }).eq('telegram_id', telegram_id).execute()
+            
+            if result.data:
+                print(f"Updated social points for user {telegram_id}: {current_points} -> {new_points}")
+                return result.data[0]
+            return None
+            
+        except Exception as e:
+            print(f"Error updating social points for user {telegram_id}: {str(e)}")
+            return None
+
+    async def update_user_free_requests(self, telegram_id: int, change: int) -> Optional[Dict[str, Any]]:
+        """
+        Update a user's free requests remaining.
+        
+        Args:
+            telegram_id: Telegram ID of the user
+            change: Amount to add (positive) or subtract (negative)
+            
+        Returns:
+            Updated user data or None if update failed
+        """
+        try:
+            # First get current free requests to ensure we don't go negative
+            user = await self.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                print(f"User {telegram_id} not found when updating free requests")
+                return None
+                
+            current_requests = user.get('free_requests_remaining', 0)
+            new_requests = current_requests + change
+            
+            if new_requests < 0:
+                print(f"Cannot update free requests for user {telegram_id}: would result in negative requests")
+                return None
+                
+            result = await self._client.table('users').update({
+                'free_requests_remaining': new_requests
+            }).eq('telegram_id', telegram_id).execute()
+            
+            if result.data:
+                print(f"Updated free requests for user {telegram_id}: {current_requests} -> {new_requests}")
+                return result.data[0]
+            return None
+            
+        except Exception as e:
+            print(f"Error updating free requests for user {telegram_id}: {str(e)}")
+            return None
+
+    async def reset_all_users_free_requests(self) -> bool:
+        """
+        Reset free requests for all users to the default value.
+        
+        Returns:
+            True if reset was successful, False otherwise
+        """
+        try:
+            result = await self._client.table('users').update({
+                'free_requests_remaining': FREE_REQUESTS_PER_MONTH
+            }).execute()
+            
+            if result.data:
+                print(f"Reset free requests for all users to {FREE_REQUESTS_PER_MONTH}")
+                return True
+            return False
+            
+        except Exception as e:
+            print(f"Error resetting free requests for all users: {str(e)}")
+            return False 

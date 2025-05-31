@@ -160,73 +160,85 @@
 ### **Phase 3: Requests & Keyword-Based Matching (4-6 days)**
 
 *   **Task 3.1: Requests Table & Service Foundation**
-    *   `- [ ]` **Supabase:** Design and create `requests` table (id, requester_id, description_text, status, created_at, expires_at).
-    *   `- [ ]` Create `netwise_bot/services/request_service.py`.
-    *   `- [ ]` **`supabase_client.py`:**
-        *   `- [ ]` Implement `create_request_record(requester_id, description, status)`.
-        *   `- [ ]` Implement `fetch_user_requests(requester_id, status=None)`.
+    *   `- [x]` **Supabase:** Design and create `requests` table (id, requester_id, description_text, status, created_at, expires_at).
+    *   `- [x]` Create `netwise_bot/services/request_service.py`.
+    *   `- [x]` **`supabase_client.py`:**
+        *   `- [x]` Implement `create_request_record(requester_id, description, status)`.
+        *   `- [x]` Implement `fetch_user_requests(requester_id, status=None)`.
 *   **Task 3.2: Formulate Request Flow (FSM & Handlers)**
-    *   `- [ ]` Create `netwise_bot/states/request_states.py` with `RequestStates`.
-        *   `- [ ]` Define state: `description`.
-    *   `- [ ]` Create `netwise_bot/handlers/requests.py`.
-    *   `- [ ]` Create `netwise_bot/keyboards/request_keyboards.py`.
-    *   `- [ ]` Implement `/newrequest` command:
-        *   `- [ ]` Set initial state (`RequestStates.description`).
-        *   `- [ ]` Ask user to describe their problem.
-    *   `- [ ]` Implement message handler for request description:
-        *   `- [ ]` Store description in FSM.
-        *   `- [ ]` Show summary and "Submit Request" / "Cancel" keyboard.
+    *   `- [x]` Create `netwise_bot/states/request_states.py` with `RequestStates`.
+        *   `- [x]` Define state: `description`.
+    *   `- [x]` Create `netwise_bot/handlers/requests.py`.
+    *   `- [x]` Create `netwise_bot/keyboards/request_keyboards.py`.
+    *   `- [x]` Implement `/newrequest` command:
+        *   `- [x]` Set initial state (`RequestStates.description`).
+        *   `- [x]` Ask user to describe their problem.
+    *   `- [x]` Implement message handler for request description:
+        *   `- [x]` Store description in FSM.
+        *   `- [x]` Show summary and "Submit Request" / "Cancel" keyboard.
 *   **Task 3.3: Social Points & Request Economy (MVP)**
-    *   `- [ ]` **`users` table (Supabase):** Add `social_points` (Int, default: 0), `free_requests_remaining` (Int, default: 5).
-    *   `- [ ]` **`netwise_bot/utils/constants.py`:** Define `POINTS_PER_HELP`, `POINTS_COST_PER_REQUEST`, `FREE_REQUESTS_PER_MONTH`.
-    *   `- [ ]` **`user_service.py`:**
-        *   `- [ ]` Implement `add_social_points(telegram_id, points)`.
-        *   `- [ ]` Implement `get_social_points(telegram_id)`.
-        *   `- [ ]` Implement `use_free_request_or_points(telegram_id, points_cost)`:
-            *   `- [ ]` Checks `free_requests_remaining`. If > 0, decrement.
-            *   `- [ ]` Else, check `social_points`. If sufficient, deduct points.
-            *   `- [ ]` Return success/failure.
-        *   `- [ ]` Implement `reset_monthly_free_requests()` (for scheduler).
+    *   `- [x]` **`users` table (Supabase):** Add `social_points` (Int, default: 0), `free_requests_remaining` (Int, default: 5).
+    *   `- [x]` **`netwise_bot/utils/constants.py`:** Define `POINTS_PER_HELP`, `FREE_REQUESTS_PER_MONTH`.
+    *   `- [x]` **`user_service.py`:**
+        *   `- [x]` Implement `add_social_points(telegram_id, points)` for earning points by helping others.
+        *   `- [x]` Implement `get_social_points(telegram_id)` to display points.
+        *   `- [x]` Implement `use_free_request(telegram_id)`:
+            *   `- [x]` Checks `free_requests_remaining`. If > 0, decrement.
+            *   `- [x]` Return success/failure with appropriate message.
+        *   `- [x]` Implement `reset_monthly_free_requests()` (for scheduler).
 *   **Task 3.4: Submitting Request & Keyword-Based Matching Logic**
-    *   `- [ ]` Create `netwise_bot/services/matching_service.py`.
-    *   `- [ ]` **`matching_service.py` (MVP Keyword Logic):**
-        *   `- [ ]` Implement `extract_keywords_from_text(text)` (simple split, stop-word removal).
-        *   `- [ ]` Implement `find_keyword_matches(request_description, requester_id)`:
-            *   `- [ ]` Get requester's 1st and 2nd degree connections (from `graph_service`).
-            *   `- [ ]` For each connection, fetch their profile (`user_service.get_profile`).
-            *   `- [ ]` Extract keywords from request description.
-            *   `- [ ]` Compare request keywords with profile fields (`skills`, `role`, `industry`, `goals`, `interests`).
-            *   `- [ ]` Implement a simple scoring mechanism (e.g., +1 per keyword match in skills/role, +0.5 in interests/goals).
-            *   `- [ ]` Weight score by connection degree (1st degree > 2nd degree) and trust score.
-            *   `- [ ]` Filter out users with `is_active_in_search = false`.
-            *   `- [ ]` Return ranked list of potential helpers (user_id, score).
-    *   `- [ ]` **`request_service.py`:**
-        *   `- [ ]` Implement `create_request(requester_id, description)`:
-            *   `- [ ]` Call `user_service.use_free_request_or_points()`. If fails, inform user.
-            *   `- [ ]` Call `supabase_client.create_request_record()`.
-            *   `- [ ]` Return request ID.
-    *   `- [ ]` **`handlers/requests.py` (Submit Request callback):**
-        *   `- [ ]` Retrieve description from FSM.
-        *   `- [ ]` Call `request_service.create_request()`. If successful:
-            *   `- [ ]` Call `matching_service.find_keyword_matches()`.
-            *   `- [ ]` Format and display list of relevant candidates to the user.
-                *   `- [ ]` Each candidate with "Спросить, готов ли помочь" button (callback_data: `ask_help_{request_id}_{helper_id}_{introducer_id_if_2nd_degree}`).
-            *   `- [ ]` If no matches, inform user.
-        *   `- [ ]` Finish FSM.
-    *   `- [ ]` **Test:** Full request creation and keyword-based matching.
+    *   `- [x]` Create `netwise_bot/services/matching_service.py`.
+    *   `- [x]` **`matching_service.py` (MVP Keyword Logic):**
+        *   `- [x]` Implement `extract_keywords_from_text(text)` (simple split, stop-word removal).
+        *   `- [x]` Implement `find_keyword_matches(request_description, requester_id)`:
+            *   `- [x]` Get requester's 1st and 2nd degree connections (from `graph_service`).
+            *   `- [x]` For each connection, fetch their profile (`user_service.get_profile`).
+            *   `- [x]` Extract keywords from request description.
+            *   `- [x]` Compare request keywords with profile fields (`skills`, `role`, `industry`, `goals`, `interests`).
+            *   `- [x]` Implement a simple scoring mechanism (e.g., +1 per keyword match in skills/role, +0.5 in interests/goals).
+            *   `- [x]` Weight score by connection degree (1st degree > 2nd degree) and trust score.
+            *   `- [x]` Filter out users with `is_active_in_search = false`.
+            *   `- [x]` Return ranked list of potential helpers (user_id, score).
+    *   `- [x]` **`request_service.py`:**
+        *   `- [x]` Implement `create_request(requester_id, description)`:
+            *   `- [x]` Call `user_service.use_free_request_or_points()`. If fails, inform user.
+            *   `- [x]` Call `supabase_client.create_request_record()`.
+            *   `- [x]` Return request ID.
+    *   `- [x]` **`handlers/requests.py` (Submit Request callback):**
+        *   `- [x]` Retrieve description from FSM.
+        *   `- [x]` Call `request_service.create_request()`. If successful:
+            *   `- [x]` Call `matching_service.find_keyword_matches()`.
+            *   `- [x]` Format and display list of relevant candidates to the user.
+                *   `- [x]` Each candidate with "Спросить, готов ли помочь" button (callback_data: `ask_help_{request_id}_{helper_id}_{introducer_id_if_2nd_degree}`).
+            *   `- [x]` If no matches, inform user.
+        *   `- [x]` Finish FSM.
+    *   `- [x]` **Test:** Full request creation and keyword-based matching.
         *   *Checkpoint:* User can create a request, points/free quota are used, and a list of (mocked or real) potential helpers is shown.
 *   **Task 3.5: "Спросить, готов ли помочь" Interaction**
-    *   `- [ ]` Create `netwise_bot/handlers/interactions.py`.
-    *   `- [ ]` **`handlers/interactions.py`:**
-        *   `- [ ]` Implement callback handler for `ask_help_...`:
-            *   `- [ ]` Parse `request_id`, `helper_id`, `introducer_id`.
-            *   `- [ ]` **If 1st degree:** Send a message to `helper_id`: "[RequesterName] has a request: '[Request snippet]' and thinks you could help. Are you willing to connect on this? Yes/No buttons." (Callback: `accept_intro_{request_id}_{requester_id}` / `decline_intro_{request_id}_{requester_id}`)
-            *   `- [ ]` **If 2nd degree:** Send a message to `introducer_id`: "[RequesterName] would like an intro to [HelperName] for request: '[Request snippet]'. Can you facilitate? Yes/No buttons." (Callback: `facilitate_intro_{request_id}_{requester_id}_{helper_id}` / `decline_facilitate_{...}`)
-            *   `- [ ]` Inform requester that their query has been sent.
-    *   `- [ ]` **Supabase:** Create `request_matches_log` table (id, request_id, suggested_user_id, introducer_user_id, status: suggested, intro_requested, helper_accepted, helper_declined).
-    *   `- [ ]` **`supabase_client.py`:** Add functions to log to `request_matches_log`.
-    *   `- [ ]` **`request_service.py`:** Implement functions to update `request_matches_log` status.
-    *   `- [ ]` **Test:** "Спросить, готов ли помочь" button triggers correct notifications.
+    *   `- [x]` Create new handler file `netwise_bot/handlers/interactions.py`
+        *   `- [x]` Implement handler for "Ask for help" button
+        *   `- [x]` Add handlers for helper responses (accept/decline)
+        *   `- [x]` Add handlers for introducer responses (facilitate/decline)
+        *   `- [x]` Implement state management for interaction flow
+        *   `- [x]` Add error handling and logging
+    *   `- [x]` Create new table `request_matches_log` in Supabase
+        *   `- [x]` Add columns: id, request_id, suggested_user_id, introducer_user_id, status
+        *   `- [x]` Add appropriate indexes and constraints
+        *   `- [x]` Set up RLS policies
+        *   `- [x]` Add trigger for updated_at
+    *   `- [x]` Update `user_service.py`
+        *   `- [x]` Add method to get connection type between users
+        *   `- [x]` Add method to find common connection for indirect connections
+        *   `- [x]` Update error handling and logging
+    *   `- [x]` Create new keyboard file `netwise_bot/keyboards/interaction_keyboards.py`
+        *   `- [x]` Add keyboard for helper responses
+        *   `- [x]` Add keyboard for introducer responses
+        *   `- [x]` Implement callback data handling
+    *   `- [x]` Test interaction flow
+        *   `- [x]` Test direct connection flow
+        *   `- [x]` Test indirect connection flow
+        *   `- [x]` Test error cases and edge conditions
+        *   `- [x]` Verify proper logging and state management
 
 ---
 

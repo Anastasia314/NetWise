@@ -658,3 +658,268 @@ Implementation of functionality to view and manage user connections in the NetWi
 - Add proper validation for filter and sort parameters
 - Consider adding connection export functionality
 - Add proper pagination handling for large connection lists
+
+# Requests Table & Service Foundation
+
+## Feature Description
+This feature implements the core data structure and service layer for handling user requests in the NetWise bot. It establishes the foundation for users to create and manage their help requests, which will later be matched with potential helpers through the AI matching system.
+
+## Tasks
+- [ ] Create requests table in Supabase with required fields
+- [ ] Create request_service.py with basic CRUD operations
+- [ ] Implement create_request_record in supabase_client.py
+- [ ] Implement fetch_user_requests in supabase_client.py
+- [ ] Add error handling and validation
+- [ ] Add logging for request operations
+- [ ] Write tests for request operations
+
+## Files Involved
+- `netwise_bot/services/request_service.py` (new)
+- `netwise_bot/services/supabase_client.py` (modify)
+- `netwise_bot/utils/constants.py` (modify)
+- `netwise_bot/utils/logger.py` (modify)
+
+## External Dependencies
+- supabase-py
+- python-dotenv
+- logging
+
+## Notes
+- The requests table will store all user requests for help
+- Each request will have a unique ID, requester ID, description, status, and timestamps
+- The service layer will handle all request-related operations
+- Error handling should be comprehensive to ensure data integrity
+- Logging should be implemented for debugging and monitoring
+
+# Formulate Request Flow (FSM & Handlers)
+
+## Feature Description
+Implementation of the request creation flow using aiogram's Finite State Machine (FSM) to guide users through the process of creating a help request. This includes creating states for collecting request information, implementing handlers for each state, and managing the request submission process.
+
+## Tasks
+- [ ] Create `netwise_bot/states/request_states.py`
+  - [ ] Create `RequestStates` class inheriting from `StatesGroup`
+  - [ ] Define state: `description`
+- [ ] Create `netwise_bot/handlers/requests.py`
+  - [ ] Create router for request-related handlers
+  - [ ] Implement `/newrequest` command handler
+  - [ ] Implement message handler for request description
+  - [ ] Add validation for request description
+  - [ ] Add error handling and user feedback
+- [ ] Create `netwise_bot/keyboards/request_keyboards.py`
+  - [ ] Create keyboard for request submission confirmation
+  - [ ] Create keyboard for request cancellation
+  - [ ] Add appropriate callback data for buttons
+- [ ] Update `netwise_bot/services/request_service.py`
+  - [ ] Add method to validate request description
+  - [ ] Add method to check user's request quota
+- [ ] Add comprehensive error handling
+  - [ ] Handle validation errors
+  - [ ] Handle database errors
+  - [ ] Handle quota exceeded errors
+- [ ] Add logging for debugging
+  - [ ] Log request creation attempts
+  - [ ] Log validation errors
+  - [ ] Log successful submissions
+
+## Files Involved
+- `netwise_bot/states/request_states.py` (new)
+- `netwise_bot/handlers/requests.py` (new)
+- `netwise_bot/keyboards/request_keyboards.py` (new)
+- `netwise_bot/services/request_service.py` (update)
+- `netwise_bot/handlers/common.py` (update to register request router)
+
+## External Dependencies
+- aiogram (already installed)
+- supabase-py (already installed)
+- python-dotenv (already installed)
+
+## Notes
+- The request description should be clear and specific
+- Consider adding character limits for descriptions
+- Add proper validation messages for users
+- Consider adding request templates or examples
+- Add proper error messages for all failure cases
+- Consider adding request preview before submission
+- Add proper logging for monitoring and debugging
+- Consider adding request categories or tags for future features
+
+# **Task 3.3: Social Points & Request Economy (MVP)**
+
+**Feature Description:**
+Implementation of the social points system and request economy in the NetWise bot. This includes adding social points tracking, managing free request quotas, and implementing the logic for using points or free requests when creating new requests. The system will also include a monthly reset mechanism for free requests.
+
+**Tasks:**
+- [ ] Update `users` table in Supabase:
+  - [ ] Add `social_points` (Int, default: 0)
+  - [ ] Add `free_requests_remaining` (Int, default: 5)
+  - [ ] Add appropriate indexes for performance
+- [ ] Create/update `netwise_bot/utils/constants.py`:
+  - [ ] Define `POINTS_PER_HELP` (e.g., 10)
+  - [ ] Define `POINTS_COST_PER_REQUEST` (e.g., 5)
+  - [ ] Define `FREE_REQUESTS_PER_MONTH` (e.g., 5)
+- [ ] Update `netwise_bot/services/user_service.py`:
+  - [ ] Implement `add_social_points(telegram_id, points)` method
+  - [ ] Implement `get_social_points(telegram_id)` method
+  - [ ] Implement `use_free_request_or_points(telegram_id, points_cost)` method:
+    - [ ] Check `free_requests_remaining`
+    - [ ] If > 0, decrement and return success
+    - [ ] Else, check `social_points`
+    - [ ] If sufficient, deduct points and return success
+    - [ ] Return failure if neither available
+  - [ ] Implement `reset_monthly_free_requests()` method for scheduler
+- [ ] Update `netwise_bot/services/supabase_client.py`:
+  - [ ] Add methods for updating social points
+  - [ ] Add methods for managing free requests
+  - [ ] Add methods for resetting monthly quotas
+- [ ] Add logging for points and request economy operations
+- [ ] Test all new functionality:
+  - [ ] Test points addition
+  - [ ] Test points deduction
+  - [ ] Test free request usage
+  - [ ] Test monthly reset
+  - [ ] Test error cases
+
+**Files Involved:**
+- `netwise_bot/services/user_service.py` (update)
+- `netwise_bot/services/supabase_client.py` (update)
+- `netwise_bot/utils/constants.py` (update)
+- `netwise_bot/utils/logger.py` (update)
+- Supabase database schema (update)
+
+**External Dependencies:**
+- `supabase-py` (already installed)
+- `python-dotenv` (already installed)
+- `logging` (Python standard library)
+
+**Notes:**
+- Social points should be non-negative
+- Free requests should be non-negative
+- Consider adding points history for future features
+- Add proper error handling for all operations
+- Consider adding points expiration
+- Add proper validation for all operations
+- Consider adding points rewards for other actions
+- Add proper logging for monitoring and debugging
+
+# **Task 3.4: Submitting Request & Keyword-Based Matching Logic**
+
+**Feature Description:**
+Implementation of the request submission system and keyword-based matching logic to connect users with potential helpers. This includes creating a matching service that analyzes request descriptions and user profiles to find the most relevant connections, considering factors like skills, industry, and trust scores.
+
+**Tasks:**
+- [ ] Create `netwise_bot/services/matching_service.py`
+  - [ ] Implement `extract_keywords_from_text(text)` function:
+    - [ ] Split text into words
+    - [ ] Remove stop words
+    - [ ] Return list of relevant keywords
+  - [ ] Implement `find_keyword_matches(request_description, requester_id)` function:
+    - [ ] Get requester's 1st and 2nd degree connections
+    - [ ] Fetch profiles for each connection
+    - [ ] Extract keywords from request description
+    - [ ] Compare keywords with profile fields
+    - [ ] Implement scoring mechanism
+    - [ ] Weight scores by connection degree and trust
+    - [ ] Filter inactive users
+    - [ ] Return ranked list of potential helpers
+
+- [ ] Update `netwise_bot/services/request_service.py`:
+  - [ ] Implement `create_request(requester_id, description)` method:
+    - [ ] Check free request quota
+    - [ ] Create request record
+    - [ ] Return request ID
+  - [ ] Add error handling and validation
+  - [ ] Add logging for request creation
+
+- [ ] Update `netwise_bot/handlers/requests.py`:
+  - [ ] Implement request submission callback handler:
+    - [ ] Get description from FSM
+    - [ ] Call request service to create request
+    - [ ] Call matching service to find helpers
+    - [ ] Format and display potential helpers
+    - [ ] Add "Ask for help" buttons
+    - [ ] Handle no matches case
+    - [ ] Clear FSM state
+
+**Files Involved:**
+- `netwise_bot/services/matching_service.py` (new)
+- `netwise_bot/services/request_service.py` (update)
+- `netwise_bot/handlers/requests.py` (update)
+- `netwise_bot/utils/constants.py` (update if needed)
+
+**External Dependencies:**
+- `aiogram`: For bot handlers and FSM
+- `supabase-py`: For database operations
+- `python-dotenv`: For environment variables
+- `nltk` or similar: For text processing (optional)
+
+**Notes:**
+- The matching algorithm should be efficient and scalable
+- Consider caching frequently accessed profiles
+- Add proper error handling for all operations
+- Implement logging for debugging
+- Consider adding request categories or tags
+- Add validation for request descriptions
+- Consider adding request templates
+- Add proper error messages for users
+- Consider adding request search functionality
+- Add proper pagination for large result sets
+
+# **Task 3.5: "Спросить, готов ли помочь" Interaction**
+
+**Feature Description:**
+Implementation of the interaction flow when a user wants to ask a potential helper for assistance. This includes handling both direct connections (1st degree) and introductions through mutual connections (2nd degree), managing the request flow, and logging all interactions in the request matches log.
+
+**Tasks:**
+- [ ] Create `netwise_bot/handlers/interactions.py`
+  - [ ] Create router for interaction handlers
+  - [ ] Implement callback handler for `ask_help_...`:
+    - [ ] Parse `request_id`, `helper_id`, `introducer_id`
+    - [ ] Handle 1st degree connections:
+      - [ ] Send message to helper with request details
+      - [ ] Add Yes/No buttons for helper's response
+    - [ ] Handle 2nd degree connections:
+      - [ ] Send message to introducer for facilitation
+      - [ ] Add Yes/No buttons for introducer's response
+    - [ ] Inform requester about sent query
+- [ ] Create `request_matches_log` table in Supabase:
+  - [ ] Add columns: id, request_id, suggested_user_id, introducer_user_id, status
+  - [ ] Add appropriate indexes and constraints
+  - [ ] Add RLS policies
+- [ ] Update `netwise_bot/services/supabase_client.py`:
+  - [ ] Add methods for logging to `request_matches_log`
+  - [ ] Add methods for updating match status
+- [ ] Update `netwise_bot/services/request_service.py`:
+  - [ ] Add methods to update `request_matches_log` status
+  - [ ] Add methods to handle helper responses
+- [ ] Create `netwise_bot/keyboards/interaction_keyboards.py`:
+  - [ ] Implement keyboard for helper's Yes/No response
+  - [ ] Implement keyboard for introducer's Yes/No response
+- [ ] Test the full interaction flow:
+  - [ ] Test 1st degree connection flow
+  - [ ] Test 2nd degree connection flow
+  - [ ] Test error cases and edge conditions
+
+**Files Involved:**
+- `netwise_bot/handlers/interactions.py` (new)
+- `netwise_bot/keyboards/interaction_keyboards.py` (new)
+- `netwise_bot/services/supabase_client.py` (update)
+- `netwise_bot/services/request_service.py` (update)
+- Supabase database schema (new table)
+
+**External Dependencies:**
+- `aiogram`: For bot handlers and keyboards
+- `supabase-py`: For database operations
+- `python-dotenv`: For environment variables
+
+**Notes:**
+- Need to handle both direct and indirect connections
+- Consider adding timeouts for responses
+- Add proper error handling for all operations
+- Implement logging for debugging
+- Consider adding notifications for pending responses
+- Add proper validation for all operations
+- Consider adding response templates
+- Add proper error messages for users
+- Consider adding response tracking
+- Add proper pagination for large result sets

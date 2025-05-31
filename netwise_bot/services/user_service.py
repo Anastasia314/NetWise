@@ -1,6 +1,11 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from .supabase_client import SupabaseClient
+from netwise_bot.utils.constants import POINTS_PER_HELP, FREE_REQUESTS_PER_MONTH
+import logging
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 class UserService:
     def __init__(self):
@@ -160,4 +165,159 @@ class UserService:
             return await self._client.get_user_by_id(user_id)
         except Exception as e:
             logger.error(f"Error getting user by ID: {e}")
-            return None 
+            return None
+
+    async def add_social_points(self, telegram_id: int, points: int = POINTS_PER_HELP) -> bool:
+        """
+        Add social points to a user's account.
+        Points can only be earned by helping others, not spent.
+        
+        Args:
+            telegram_id: The Telegram ID of the user
+            points: The number of points to add (default: POINTS_PER_HELP)
+            
+        Returns:
+            bool: True if points were added successfully, False otherwise
+        """
+        try:
+            if points <= 0:
+                logger.warning(f"Attempted to add non-positive points: {points}")
+                return False
+
+            result = await self._client.update_user_social_points(telegram_id, points)
+            return result is not None
+
+        except Exception as e:
+            logger.error(f"Error adding social points: {e}")
+            return False
+
+    async def get_social_points(self, telegram_id: int) -> Optional[int]:
+        """
+        Get the current social points for a user.
+        
+        Args:
+            telegram_id: The Telegram ID of the user
+            
+        Returns:
+            int: The number of social points, or None if user not found
+        """
+        try:
+            user = await self._client.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                return None
+            return user.get('social_points', 0)
+        except Exception as e:
+            logger.error(f"Error getting social points: {e}")
+            return None
+
+    async def use_free_request(self, telegram_id: int) -> tuple[bool, str]:
+        """
+        Use one of the user's free requests.
+        
+        Args:
+            telegram_id: The Telegram ID of the user
+            
+        Returns:
+            tuple[bool, str]: (success, message)
+        """
+        try:
+            # Check if user has free requests remaining
+            user = await self._client.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                return False, "User not found"
+
+            free_requests = user.get('free_requests_remaining', 0)
+            if free_requests <= 0:
+                return False, "No free requests remaining"
+
+            # Deduct one free request
+            result = await self._client.update_user_free_requests(telegram_id, -1)
+            if result:
+                return True, f"Free request used. {free_requests - 1} requests remaining."
+            return False, "Error using free request."
+
+        except Exception as e:
+            logger.error(f"Error using free request: {e}")
+            return False, "An error occurred"
+
+    async def reset_monthly_free_requests(self) -> bool:
+        """
+        Reset free requests for all users to the default value.
+        
+        Returns:
+            bool: True if reset was successful, False otherwise
+        """
+        try:
+            result = await self._client.reset_all_users_free_requests()
+            return bool(result)
+        except Exception as e:
+            logger.error(f"Error resetting free requests: {e}")
+            return False
+
+    async def get_connection_type(self, user1_id: int, user2_id: int) -> Optional[str]:
+        """
+        Get the type of connection between two users.
+        
+        Args:
+            user1_id: The Telegram ID of the first user
+            user2_id: The Telegram ID of the second user
+            
+        Returns:
+            "direct" if users are directly connected,
+            "indirect" if users are connected through a common connection,
+            None if no connection exists
+        """
+        try:
+            # Check for direct connection
+            direct_connection = await self._client.fetch_connection_type(user1_id, user2_id)
+            if direct_connection:
+                return direct_connection
+
+            # Check for indirect connection
+            indirect_connection = await self._client.fetch_indirect_connection(user1_id, user2_id)
+            if indirect_connection:
+                return indirect_connection
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting connection type: {e}")
+            return None
+
+    async def get_common_connection(
+        self,
+        user1_id: int,
+        user2_id: int
+    ) -> Optional[Dict]:
+        """
+        Get the common connection between two users.
+        
+        Args:
+            user1_id: The Telegram ID of the first user
+            user2_id: The Telegram ID of the second user
+            
+        Returns:
+            Dict containing the common connection's details if found,
+            None otherwise
+        """
+        try:
+            # Get connections for both users
+            connections = await self._client.fetch_connections(user1_id, user2_id)
+            if not connections:
+                return None
+
+            # Find common connection
+            common_id = connections[0]['id']
+            user_details = await self._client.fetch_user_details(common_id)
+
+            if user_details:
+                return user_details
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting common connection: {e}")
+            return None
+
+# Create singleton instance
+user_service = UserService() 
