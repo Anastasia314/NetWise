@@ -14,7 +14,12 @@ router = Router()
 user_service = UserService()
 
 @router.message(Command("start"))
-async def handle_start(message: types.Message, state: FSMContext, user_service: UserService, graph_service: GraphService):
+async def handle_start(
+    message: types.Message,
+    state: FSMContext,
+    user_service: UserService = None,
+    graph_service: GraphService = None
+):
     """Handle /start command and invite links."""
     # Check if this is an invite link
     args = message.text.split()

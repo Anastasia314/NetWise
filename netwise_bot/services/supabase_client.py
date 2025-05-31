@@ -21,7 +21,7 @@ class SupabaseClient:
                 get_supabase_key()
             )
 
-    def fetch_user_by_telegram_id(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def fetch_user_by_telegram_id(self, telegram_id: int) -> Optional[Dict[str, Any]]:
         """
         Fetch a user by their Telegram ID.
         
@@ -40,7 +40,7 @@ class SupabaseClient:
             print(f"Error fetching user: {e}")
             return None
 
-    def create_user(self, telegram_id: int, name: Optional[str] = None, defaults: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    async def create_user(self, telegram_id: int, name: Optional[str] = None, defaults: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
         Create a new user in the database.
         
@@ -72,7 +72,7 @@ class SupabaseClient:
             print(f"Error creating user: {e}")
             return None
 
-    def update_user_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def update_user_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a user's profile data.
         
@@ -99,7 +99,7 @@ class SupabaseClient:
             print(f"Error updating user profile: {e}")
             return None
 
-    def fetch_user_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def fetch_user_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
         """
         Fetch a user's complete profile data.
         
@@ -124,7 +124,7 @@ class SupabaseClient:
             print(f"Error fetching user profile: {e}")
             return None
 
-    def update_user_last_active(self, telegram_id: int) -> bool:
+    async def update_user_last_active(self, telegram_id: int) -> bool:
         """
         Update a user's last active timestamp.
         
@@ -144,7 +144,7 @@ class SupabaseClient:
             print(f"Error updating user last active: {e}")
             return False
 
-    def update_user_search_status(self, telegram_id: int, is_active: bool) -> bool:
+    async def update_user_search_status(self, telegram_id: int, is_active: bool) -> bool:
         """
         Update a user's visibility in search.
         
@@ -190,7 +190,7 @@ class SupabaseClient:
         user2_id: str,
         connection_type: str,
         trust_score: int,
-        status: str = "pending"
+        status: str = "active"
     ) -> Optional[Dict[str, Any]]:
         """
         Create a new connection between two users.
@@ -237,4 +237,32 @@ class SupabaseClient:
             return response.data
         except Exception as e:
             print(f"Error fetching connections: {e}")
-            return [] 
+            return []
+
+    async def update_connection(self, connection_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update a connection's data."""
+        try:
+            response = self._client.table('connections').update(updates).eq('id', connection_id).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error updating connection: {e}")
+            return None
+
+    async def delete_connection(self, connection_id: str) -> bool:
+        """Delete a connection."""
+        try:
+            response = self._client.table('connections').delete().eq('id', connection_id).execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"Error deleting connection: {e}")
+            return False
+
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by their ID."""
+        try:
+            response = self._client.table('users').select('*').eq('id', user_id).execute()
+            users = response.data
+            return users[0] if users else None
+        except Exception as e:
+            print(f"Error getting user by id: {e}")
+            return None 

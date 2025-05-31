@@ -3,7 +3,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 from ..services.user_service import UserService
 
-class ActivityTrackingMiddleware(BaseMiddleware):
+class ActivityMiddleware(BaseMiddleware):
     def __init__(self, user_service: UserService):
         """
         Initialize the activity tracking middleware.
@@ -40,9 +40,9 @@ class ActivityTrackingMiddleware(BaseMiddleware):
         elif hasattr(event, 'callback_query') and event.callback_query and event.callback_query.from_user:
             user_id = event.callback_query.from_user.id
 
-        # Update user activity if we have a user ID
+        # Update last active timestamp if we have a user ID
         if user_id:
-            self.user_service.update_last_active(user_id)
+            await self.user_service.update_user_activity(user_id)
 
         # Call the next handler
         return await handler(event, data) 

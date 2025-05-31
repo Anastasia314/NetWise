@@ -4,75 +4,105 @@ from .supabase_client import SupabaseClient
 
 class UserService:
     def __init__(self):
-        self._supabase = SupabaseClient()
+        self._client = SupabaseClient()
 
-    def get_or_create_user(self, telegram_id: int, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def get_or_create_user(self, telegram_id: int, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
-        Get an existing user or create a new one if they don't exist.
+        Get a user by Telegram ID or create if not exists.
         
         Args:
-            telegram_id (int): The Telegram user ID
-            name (Optional[str]): The user's name
+            telegram_id: Telegram ID of the user
+            name: Optional name of the user
             
         Returns:
-            Optional[Dict[str, Any]]: User data if successful, None otherwise
+            User data dictionary or None if operation failed
         """
-        user = self._supabase.fetch_user_by_telegram_id(telegram_id)
-        if not user:
-            user = self._supabase.create_user(telegram_id, name)
-        return user
-
-    def update_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """
-        Update a user's profile data.
-        
-        Args:
-            telegram_id (int): The Telegram user ID
-            profile_data (Dict[str, Any]): The profile data to update
+        try:
+            # Try to get existing user
+            user = await self._client.fetch_user_by_telegram_id(telegram_id)
             
-        Returns:
-            Optional[Dict[str, Any]]: Updated user data if successful, None otherwise
-        """
-        if not self._validate_profile_data(profile_data):
+            if user:
+                return user
+                
+            # Create new user if doesn't exist
+            return await self._client.create_user(
+                telegram_id=telegram_id,
+                name=name,
+                defaults={
+                    "social_points": 0,
+                    "free_requests_remaining": 5,
+                    "is_active_in_search": True
+                }
+            )
+        except Exception as e:
+            print(f"Error in get_or_create_user: {e}")
             return None
-        return self._supabase.update_user_profile(telegram_id, profile_data)
 
-    def get_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
         """
-        Get a user's complete profile data.
+        Get user profile by Telegram ID.
         
         Args:
-            telegram_id (int): The Telegram user ID
+            telegram_id: Telegram ID of the user
             
         Returns:
-            Optional[Dict[str, Any]]: User profile data if found, None otherwise
+            Profile data dictionary or None if not found
         """
-        return self._supabase.fetch_user_profile(telegram_id)
+        try:
+            return await self._client.fetch_user_profile(telegram_id)
+        except Exception as e:
+            print(f"Error in get_profile: {e}")
+            return None
 
-    def update_last_active(self, telegram_id: int) -> bool:
+    async def update_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> bool:
         """
-        Update a user's last active timestamp.
+        Update user profile.
         
         Args:
-            telegram_id (int): The Telegram user ID
+            telegram_id: Telegram ID of the user
+            profile_data: Dictionary containing profile fields to update
             
         Returns:
-            bool: True if successful, False otherwise
+            bool: True if update successful, False otherwise
         """
-        return self._supabase.update_user_last_active(telegram_id)
+        try:
+            return bool(await self._client.update_user_profile(telegram_id, profile_data))
+        except Exception as e:
+            print(f"Error in update_profile: {e}")
+            return False
 
-    def set_search_status(self, telegram_id: int, is_active: bool) -> bool:
+    async def update_user_activity(self, telegram_id: int) -> bool:
         """
-        Set a user's visibility in search.
+        Update user's last active timestamp.
         
         Args:
-            telegram_id (int): The Telegram user ID
-            is_active (bool): Whether the user should be visible in search
+            telegram_id: Telegram ID of the user
             
         Returns:
-            bool: True if successful, False otherwise
+            bool: True if update successful, False otherwise
         """
-        return self._supabase.update_user_search_status(telegram_id, is_active)
+        try:
+            return bool(await self._client.update_user_last_active(telegram_id))
+        except Exception as e:
+            print(f"Error in update_user_activity: {e}")
+            return False
+
+    async def set_search_status(self, telegram_id: int, is_active: bool) -> bool:
+        """
+        Set user's visibility in search.
+        
+        Args:
+            telegram_id: Telegram ID of the user
+            is_active: Whether user should be visible in search
+            
+        Returns:
+            bool: True if update successful, False otherwise
+        """
+        try:
+            return bool(await self._client.update_user_search_status(telegram_id, is_active))
+        except Exception as e:
+            print(f"Error in set_search_status: {e}")
+            return False
 
     def get_inactive_users(self, days_threshold: int = 30) -> List[Dict[str, Any]]:
         """
@@ -84,7 +114,7 @@ class UserService:
         Returns:
             List[Dict[str, Any]]: List of inactive users
         """
-        return self._supabase.get_inactive_users(days_threshold)
+        return self._client.get_inactive_users(days_threshold)
 
     def _validate_profile_data(self, profile_data: Dict[str, Any]) -> bool:
         """

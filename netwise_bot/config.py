@@ -22,10 +22,30 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 # Logging Configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
+def get_bot_token() -> str:
+    """Get the bot token from environment variables."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set")
+    return token
+
+def get_bot_username() -> str:
+    """Get the bot username from environment variables."""
+    username = os.getenv("TELEGRAM_BOT_USERNAME")
+    if not username:
+        raise ValueError("TELEGRAM_BOT_USERNAME environment variable is not set")
+    return username
+
 def get_supabase_url() -> str:
-    """Get Supabase URL from environment variables."""
-    return SUPABASE_URL
+    """Get the Supabase URL from environment variables."""
+    url = os.getenv("SUPABASE_URL")
+    if not url:
+        raise ValueError("SUPABASE_URL environment variable is not set")
+    return url
 
 def get_supabase_key() -> str:
-    """Get Supabase key from environment variables."""
-    return SUPABASE_KEY 
+    """Get the Supabase key from environment variables."""
+    key = os.getenv("SUPABASE_KEY")
+    if not key:
+        raise ValueError("SUPABASE_KEY environment variable is not set")
+    return key 
