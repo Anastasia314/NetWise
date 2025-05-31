@@ -40,45 +40,89 @@ async def handle_ask_for_help(
         state: The FSM context
     """
     try:
-        # Теперь callback.data содержит только user_id помощника
-        helper_id = callback.data
-        logger.info(f"handle_ask_for_help: callback.data={callback.data}, helper_id={helper_id}")
-        # Получаем request_id последнего активного запроса пользователя
-        # (или из состояния, если вы его туда сохраняете)
-        # Здесь пример через сервис request_service:
-        requester_id = callback.from_user.id
-        request = request_service.get_last_request_by_user(requester_id)
+        logger.info(f"Received ask for help callback: data={callback.data}")
+        
+        # Extract helper UUID and match score from callback data (remove 'ah_' prefix)
+        parts = callback.data[3:].split('_')  # Remove 'ah_' prefix and split by '_'
+        helper_uuid = parts[0]
+        match_score = int(parts[1]) if len(parts) > 1 else 0
+        logger.info(f"Extracted helper_uuid={helper_uuid}, match_score={match_score}")
+        
+        # Get helper's Telegram ID
+        helper = await supabase_client.get_user_by_id(helper_uuid)
+        if not helper:
+            logger.error(f"Helper not found for uuid={helper_uuid}")
+            await callback.answer("Helper not found")
+            return
+        helper_telegram_id = helper['telegram_id']
+        logger.info(f"Found helper: uuid={helper_uuid}, telegram_id={helper_telegram_id}")
+        
+        # Get requester's UUID
+        requester_telegram_id = callback.from_user.id
+        logger.info(f"Requester telegram_id={requester_telegram_id}")
+        
+        requester = await supabase_client.fetch_user_by_telegram_id(requester_telegram_id)
+        if not requester:
+            logger.error(f"Requester not found for telegram_id={requester_telegram_id}")
+            await callback.answer("Requester not found")
+            return
+        requester_uuid = requester['id']
+        logger.info(f"Found requester: uuid={requester_uuid}")
+        
+        # Get last active request
+        request = await request_service.get_last_request_by_user(requester_telegram_id)
         if not request:
-            logger.error(f"handle_ask_for_help: request not found for requester_id={requester_id}")
+            logger.error(f"Request not found for requester_telegram_id={requester_telegram_id}")
             await callback.answer("Request not found")
             return
         request_id = request["id"]
-        logger.info(f"handle_ask_for_help: request_id={request_id}")
-
-        # Get connection type between users
-        connection_type = user_service.get_connection_type(
-            request["requester_id"],
-            helper_id
+        logger.info(f"Found request: id={request_id}")
+        
+        # Get connection type between users using UUIDs
+        connection_type = await user_service.get_connection_type(
+            requester_uuid,
+            helper_uuid
         )
-        logger.info(f"handle_ask_for_help: connection_type={connection_type}")
-
+        logger.info(f"Connection type between users: {connection_type}")
+        
         if connection_type == "direct":
-            # Direct connection - ask helper directly
-            await handle_direct_connection(callback, request, helper_id)
+            logger.info("Handling direct connection")
+            await handle_direct_connection(
+                callback,
+                request,
+                helper_uuid,
+                helper_telegram_id,
+                requester_uuid,
+                requester_telegram_id,
+                match_score
+            )
         elif connection_type == "indirect":
-            # Indirect connection - need introducer
-            await handle_indirect_connection(callback, state, request, helper_id)
+            logger.info("Handling indirect connection")
+            await handle_indirect_connection(
+                callback,
+                state,
+                request,
+                helper_uuid,
+                helper_telegram_id,
+                requester_uuid,
+                requester_telegram_id,
+                match_score
+            )
         else:
+            logger.warning(f"No connection found between users: requester={requester_telegram_id}, helper={helper_telegram_id}")
             await callback.answer("No connection found between users")
-
     except Exception as e:
-        logger.error(f"Error handling ask for help: {e}")
+        logger.error(f"Error handling ask for help: {e}", exc_info=True)
         await callback.answer("An error occurred")
 
 async def handle_direct_connection(
     callback: CallbackQuery,
     request: dict,
-    helper_id: int
+    helper_uuid: str,
+    helper_telegram_id: int,
+    requester_uuid: str,
+    requester_telegram_id: int,
+    match_score: int
 ) -> None:
     """
     Handle direct connection between users.
@@ -86,29 +130,36 @@ async def handle_direct_connection(
     Args:
         callback: The callback query
         request: The request details
-        helper_id: The Telegram ID of the helper
+        helper_uuid: UUID of the helper
+        helper_telegram_id: Telegram ID of the helper
+        requester_uuid: UUID of the requester
+        requester_telegram_id: Telegram ID of the requester
+        match_score: The match score for this helper
     """
     try:
-        # Log the match
-        await log_request_match(request["id"], helper_id)
-
-        # Send message to helper
+        # Log the match (используем UUID)
+        await log_request_match(request["id"], helper_uuid, match_score=match_score)
+        
+        # Get requester's name
+        requester = await supabase_client.get_user_by_id(requester_uuid)
+        if not requester:
+            raise Exception(f"Requester not found for uuid={requester_uuid}")
+        requester_name = requester.get('name', 'Unknown User')
+        
+        # Send message to helper (используем Telegram ID)
         helper_message = (
             f"🔔 New help request!\n\n"
-            f"From: {request['requester_name']}\n"
-            f"Request: {request['description']}\n\n"
+            f"From: {requester_name}\n"
+            f"Request: {request['description_text']}\n\n"
             f"Can you help with this request?"
         )
-        
-        keyboard = get_helper_response_keyboard(request["id"], request["requester_id"])
+        keyboard = get_helper_response_keyboard(request["id"], requester_telegram_id)
         await callback.bot.send_message(
-            chat_id=helper_id,
+            chat_id=helper_telegram_id,
             text=helper_message,
             reply_markup=keyboard
         )
-
         await callback.answer("Request sent to helper")
-
     except Exception as e:
         logger.error(f"Error handling direct connection: {e}")
         await callback.answer("An error occurred")
@@ -117,7 +168,11 @@ async def handle_indirect_connection(
     callback: CallbackQuery,
     state: FSMContext,
     request: dict,
-    helper_id: int
+    helper_uuid: str,
+    helper_telegram_id: int,
+    requester_uuid: str,
+    requester_telegram_id: int,
+    match_score: int
 ) -> None:
     """
     Handle indirect connection between users.
@@ -126,49 +181,57 @@ async def handle_indirect_connection(
         callback: The callback query
         state: The FSM context
         request: The request details
-        helper_id: The Telegram ID of the helper
+        helper_uuid: UUID of the helper
+        helper_telegram_id: Telegram ID of the helper
+        requester_uuid: UUID of the requester
+        requester_telegram_id: Telegram ID of the requester
+        match_score: The match score for this helper
     """
     try:
-        # Get introducer
-        introducer = user_service.get_common_connection(
-            request["requester_id"],
-            helper_id
+        # Get introducer (используем Telegram ID)
+        introducer = await user_service.get_common_connection(
+            requester_telegram_id,
+            helper_telegram_id
         )
-        
         if not introducer:
             await callback.answer("No common connection found")
             return
-
-        # Log the match
+        introducer_telegram_id = introducer['telegram_id']
+        introducer_uuid = introducer['id']
+        
+        # Get requester's name
+        requester = await supabase_client.get_user_by_id(requester_uuid)
+        if not requester:
+            raise Exception(f"Requester not found for uuid={requester_uuid}")
+        requester_name = requester.get('name', 'Unknown User')
+        
+        # Log the match (используем UUID)
         await log_request_match(
             request["id"],
-            helper_id,
-            introducer_id=introducer["id"]
+            helper_uuid,
+            introducer_id=introducer_uuid,
+            match_score=match_score
         )
-
-        # Send message to introducer
+        
+        # Send message to introducer (используем Telegram ID)
         introducer_message = (
             f"🔔 Introduction request!\n\n"
-            f"From: {request['requester_name']}\n"
-            f"To: {helper_id}\n"
-            f"Request: {request['description']}\n\n"
+            f"From: {requester_name}\n"
+            f"To: {helper_telegram_id}\n"
+            f"Request: {request['description_text']}\n\n"
             f"Would you like to facilitate this introduction?"
         )
-        
         keyboard = get_introducer_response_keyboard(
             request["id"],
-            request["requester_id"],
-            helper_id
+            requester_telegram_id,
+            helper_telegram_id
         )
-        
         await callback.bot.send_message(
-            chat_id=introducer["id"],
+            chat_id=introducer_telegram_id,
             text=introducer_message,
             reply_markup=keyboard
         )
-
         await callback.answer("Request sent to introducer")
-
     except Exception as e:
         logger.error(f"Error handling indirect connection: {e}")
         await callback.answer("An error occurred")
@@ -193,7 +256,7 @@ async def handle_helper_response(
         await update_match_status(
             request_id,
             callback.from_user.id,
-            "accepted" if accepted else "declined"
+            "helper_accepted" if accepted else "helper_declined"
         )
 
         # Notify requester
@@ -281,28 +344,28 @@ async def handle_introducer_response(
 
 async def log_request_match(
     request_id: str,
-    helper_id: int,
-    introducer_id: Optional[int] = None
+    helper_uuid: str,
+    introducer_id: Optional[str] = None,
+    match_score: int = 0
 ) -> None:
     """
     Log a request match in the database.
     
     Args:
         request_id: The request ID
-        helper_id: The Telegram ID of the helper
-        introducer_id: Optional Telegram ID of the introducer
+        helper_uuid: UUID of the helper
+        introducer_id: Optional UUID of the introducer
+        match_score: The match score for this helper
     """
     try:
-        data = {
-            "request_id": request_id,
-            "suggested_user_id": helper_id,
-            "status": "pending"
-        }
-        
-        if introducer_id:
-            data["introducer_user_id"] = introducer_id
-
-        await supabase_client.table("request_matches_log").insert(data).execute()
+        result = await supabase_client.log_request_match(
+            request_id=request_id,
+            suggested_user_uuid=helper_uuid,
+            introducer_user_uuid=introducer_id,
+            match_score=match_score
+        )
+        if not result:
+            raise Exception("Failed to log request match")
 
     except Exception as e:
         logger.error(f"Error logging request match: {e}")
@@ -312,7 +375,7 @@ async def update_match_status(
     request_id: str,
     helper_id: int,
     status: str,
-    introducer_id: Optional[int] = None
+    introducer_id: Optional[str] = None
 ) -> None:
     """
     Update the status of a request match.
@@ -321,20 +384,23 @@ async def update_match_status(
         request_id: The request ID
         helper_id: The Telegram ID of the helper
         status: The new status
-        introducer_id: Optional Telegram ID of the introducer
+        introducer_id: Optional UUID of the introducer
     """
     try:
-        query = supabase_client.table("request_matches_log").update(
-            {"status": status}
-        ).match({
-            "request_id": request_id,
-            "suggested_user_id": helper_id
-        })
-        
-        if introducer_id:
-            query = query.match({"introducer_user_id": introducer_id})
+        # Get helper's UUID
+        helper = await supabase_client.fetch_user_by_telegram_id(helper_id)
+        if not helper:
+            raise Exception(f"Helper not found for telegram_id={helper_id}")
+        helper_uuid = helper['id']
 
-        await query.execute()
+        result = await supabase_client.update_request_match_status(
+            request_id=request_id,
+            suggested_user_uuid=helper_uuid,
+            status=status,
+            introducer_user_uuid=introducer_id
+        )
+        if not result:
+            raise Exception("Failed to update match status")
 
     except Exception as e:
         logger.error(f"Error updating match status: {e}")
@@ -343,15 +409,30 @@ async def update_match_status(
 # Register handlers
 router.callback_query.register(
     handle_ask_for_help,
-    lambda c: c.data and not c.data.startswith(("accept_intro_", "decline_intro_", "facilitate_intro_", "decline_facilitate_"))
-)
-
-router.callback_query.register(
-    handle_helper_response,
-    F.data.startswith(("accept_intro_", "decline_intro_"))
+    F.data.startswith("ah_")  # Only handle callbacks that start with "ah_"
 )
 
 router.callback_query.register(
     handle_introducer_response,
     F.data.startswith(("facilitate_intro_", "decline_facilitate_"))
-) 
+)
+
+# Add new handler for helper responses with parameter extraction
+@router.callback_query(F.data.startswith(("accept_intro_", "decline_intro_")))
+async def handle_helper_response_callback(callback: CallbackQuery):
+    """
+    Handle helper's response to a help request.
+    Extracts parameters from callback data and calls handle_helper_response.
+    """
+    try:
+        # Extract parameters from callback data
+        # Format: accept_intro_{request_id}_{requester_id} or decline_intro_{request_id}_{requester_id}
+        parts = callback.data.split('_')
+        request_id = parts[2]
+        requester_id = int(parts[3])
+        accepted = parts[0] == "accept"
+        
+        await handle_helper_response(callback, request_id, requester_id, accepted)
+    except Exception as e:
+        logger.error(f"Error handling helper response callback: {e}")
+        await callback.answer("An error occurred") 

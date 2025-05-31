@@ -97,7 +97,7 @@ class RequestService:
                 logger.error(f"User not found: {user_id}")
                 return []
             user_uuid = user['id']
-            return await self.supabase.fetch_user_requests(user_uuid, status)
+            return self.supabase.fetch_user_requests(user_uuid, status)
         except Exception as e:
             logger.error(f"Error fetching requests for user {user_id}: {e}")
             return []
@@ -202,6 +202,31 @@ class RequestService:
         except Exception as e:
             logger.error(f"Error checking user quota for {telegram_id}: {str(e)}")
             return False, "Error checking request quota. Please try again later."
+
+    async def get_last_request_by_user(self, telegram_id: int) -> Optional[Dict]:
+        """
+        Get the most recent request for a user by their Telegram ID.
+        
+        Args:
+            telegram_id: The Telegram ID of the user
+            
+        Returns:
+            The most recent request data or None if not found
+        """
+        try:
+            # Get user by Telegram ID
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                logger.error(f"User not found: {telegram_id}")
+                return None
+                
+            # Get user's requests, ordered by creation date
+            requests = self.supabase.fetch_user_requests(user['id'], limit=1)
+            return requests[0] if requests else None
+                
+        except Exception as e:
+            logger.error(f"Error getting last request for user {telegram_id}: {e}")
+            return None
 
 # Create singleton instance
 request_service = RequestService(supabase_client) 

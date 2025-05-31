@@ -82,33 +82,41 @@ class MatchingService:
             List of potential helpers with their match scores
         """
         try:
+            logger.info(f"Finding keyword matches for requester_id={requester_id}")
+            
             # Get user by Telegram ID
             user = await supabase_client.fetch_user_by_telegram_id(requester_id)
             if not user:
                 logger.error(f"User not found for Telegram ID: {requester_id}")
                 return []
+            logger.info(f"Found user: id={user['id']}, name={user.get('name', 'Unknown')}")
 
             # Get user's connections
             connections = await graph_service.get_connections(user['id'])
             if not connections:
                 logger.info(f"No connections found for user {user['id']}")
                 return []
+            logger.info(f"Found {len(connections)} connections for user {user['id']}")
 
             # Extract keywords from request description
             keywords = await self.extract_keywords_from_text(request_description)
             if not keywords:
                 logger.info("No keywords extracted from request description")
                 return []
+            logger.info(f"Extracted keywords: {keywords}")
 
             potential_helpers = []
             for connection in connections:
                 # Determine which user is the helper
                 helper_id = connection['user2_id'] if connection['user1_id'] == user['id'] else connection['user1_id']
+                logger.info(f"Processing connection with helper_id={helper_id}")
                 
                 # Get helper's profile
                 helper = await supabase_client.get_user_by_id(helper_id)
                 if not helper:
+                    logger.warning(f"Helper profile not found for id={helper_id}")
                     continue
+                logger.info(f"Found helper profile: id={helper_id}, name={helper.get('name', 'Unknown')}")
 
                 # Calculate match score based on skills, interests, and goals
                 score = 0
@@ -118,18 +126,21 @@ class MatchingService:
                     for skill in helper['skills']:
                         if skill and any(keyword in skill.lower() for keyword in keywords):
                             score += 2
+                            logger.info(f"Match found in skills: {skill}")
 
                 # Helper's interests matching request keywords
                 if helper.get('interests'):
                     for interest in helper['interests']:
                         if interest and any(keyword in interest.lower() for keyword in keywords):
                             score += 1
+                            logger.info(f"Match found in interests: {interest}")
 
                 # Helper's goals matching request keywords
                 if helper.get('goals'):
                     for goal in helper['goals']:
                         if goal and any(keyword in goal.lower() for keyword in keywords):
                             score += 1
+                            logger.info(f"Match found in goals: {goal}")
 
                 if score > 0:
                     potential_helpers.append({
@@ -140,13 +151,15 @@ class MatchingService:
                         'trust_score': connection.get('trust_score', 0),
                         'score': score
                     })
+                    logger.info(f"Added potential helper: id={helper_id}, name={helper.get('name', 'Unknown')}, score={score}")
 
             # Sort by score
             potential_helpers.sort(key=lambda x: x['score'], reverse=True)
+            logger.info(f"Found {len(potential_helpers)} potential helpers")
             return potential_helpers
 
         except Exception as e:
-            logger.error(f"Error finding keyword matches: {str(e)}")
+            logger.error(f"Error finding keyword matches: {str(e)}", exc_info=True)
             return []
 
     async def _calculate_match_score(

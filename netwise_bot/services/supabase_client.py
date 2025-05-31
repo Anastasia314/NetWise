@@ -286,7 +286,7 @@ class SupabaseClient:
             print(f"Error creating request record: {str(e)}")
             raise
 
-    async def fetch_user_requests(
+    def fetch_user_requests(
         self,
         requester_id: int,
         status: Optional[str] = None,
@@ -295,25 +295,20 @@ class SupabaseClient:
     ) -> List[Dict[str, Any]]:
         """
         Fetch requests for a specific user.
-        
         Args:
             requester_id: Telegram ID of the user
             status: Optional filter by request status
             limit: Maximum number of requests to return
             offset: Number of requests to skip
-            
         Returns:
             List of request records
         """
         try:
             query = self._client.table("requests").select("*").eq("requester_id", requester_id)
-            
             if status:
                 query = query.eq("status", status)
-                
-            result = await query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+            result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
             return result.data
-            
         except Exception as e:
             print(f"Error fetching user requests: {str(e)}")
             raise
@@ -461,6 +456,80 @@ class SupabaseClient:
         except Exception as e:
             print(f"Error resetting free requests for all users: {str(e)}")
             return False
+
+    async def log_request_match(
+        self,
+        request_id: str,
+        suggested_user_uuid: str,
+        introducer_user_uuid: Optional[str] = None,
+        match_score: int = 0
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Log a request match in the database.
+        
+        Args:
+            request_id: The request ID
+            suggested_user_uuid: UUID of the suggested helper
+            introducer_user_uuid: Optional UUID of the introducer
+            match_score: The match score for this helper
+            
+        Returns:
+            Dict containing the created match data or None if creation failed
+        """
+        try:
+            data = {
+                "request_id": request_id,
+                "suggested_user_id": suggested_user_uuid,
+                "status": "suggested",
+                "match_score": match_score
+            }
+            
+            if introducer_user_uuid:
+                data["introducer_user_id"] = introducer_user_uuid
+
+            response = self._client.table("request_matches_log").insert(data).execute()
+            return response.data[0] if response.data else None
+            
+        except Exception as e:
+            print(f"Error logging request match: {e}")
+            return None
+
+    async def update_request_match_status(
+        self,
+        request_id: str,
+        suggested_user_uuid: str,
+        status: str,
+        introducer_user_uuid: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Update the status of a request match.
+        
+        Args:
+            request_id: The request ID
+            suggested_user_uuid: UUID of the suggested helper
+            status: The new status
+            introducer_user_uuid: Optional UUID of the introducer
+            
+        Returns:
+            Dict containing the updated match data or None if update failed
+        """
+        try:
+            query = self._client.table("request_matches_log").update(
+                {"status": status}
+            ).match({
+                "request_id": request_id,
+                "suggested_user_id": suggested_user_uuid
+            })
+            
+            if introducer_user_uuid:
+                query = query.match({"introducer_user_id": introducer_user_uuid})
+
+            response = query.execute()
+            return response.data[0] if response.data else None
+            
+        except Exception as e:
+            print(f"Error updating request match status: {e}")
+            return None
 
 # Create singleton instance
 supabase_client = SupabaseClient() 

@@ -246,13 +246,13 @@ class UserService:
             logger.error(f"Error resetting free requests: {e}")
             return False
 
-    async def get_connection_type(self, user1_id: int, user2_id: int) -> Optional[str]:
+    async def get_connection_type(self, user1_id: str, user2_id: str) -> Optional[str]:
         """
         Get the type of connection between two users.
         
         Args:
-            user1_id: The Telegram ID of the first user
-            user2_id: The Telegram ID of the second user
+            user1_id: The UUID of the first user
+            user2_id: The UUID of the second user
             
         Returns:
             "direct" if users are directly connected,
@@ -261,14 +261,25 @@ class UserService:
         """
         try:
             # Check for direct connection
-            direct_connection = await self._client.fetch_connection_type(user1_id, user2_id)
-            if direct_connection:
-                return direct_connection
+            connections = await self._client.fetch_connections(user1_id)
+            for conn in connections:
+                if (conn['user1_id'] == user1_id and conn['user2_id'] == user2_id) or \
+                   (conn['user1_id'] == user2_id and conn['user2_id'] == user1_id):
+                    return "direct"
 
             # Check for indirect connection
-            indirect_connection = await self._client.fetch_indirect_connection(user1_id, user2_id)
-            if indirect_connection:
-                return indirect_connection
+            user1_connections = await self._client.fetch_connections(user1_id)
+            user2_connections = await self._client.fetch_connections(user2_id)
+            
+            # Get sets of connected user IDs
+            user1_connected_ids = {conn['user2_id'] if conn['user1_id'] == user1_id else conn['user1_id'] 
+                                 for conn in user1_connections}
+            user2_connected_ids = {conn['user2_id'] if conn['user1_id'] == user2_id else conn['user1_id'] 
+                                 for conn in user2_connections}
+            
+            # Check for common connections
+            if user1_connected_ids.intersection(user2_connected_ids):
+                return "indirect"
 
             return None
 

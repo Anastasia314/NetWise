@@ -11,7 +11,7 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
 from netwise_bot.config import LOG_LEVEL, TELEGRAM_BOT_TOKEN
-from netwise_bot.handlers import common, profile, connections, requests
+from netwise_bot.handlers import common, profile, connections, requests, interactions
 from netwise_bot.middleware.activity_middleware import ActivityMiddleware
 from netwise_bot.services.user_service import UserService
 from netwise_bot.services.graph_service import GraphService
@@ -56,6 +56,7 @@ async def main():
         dp.include_router(profile.router)
         dp.include_router(common.router)
         dp.include_router(requests.router)
+        dp.include_router(interactions.router)
         logger.info("Routers registered")
         
         # Set up dependency injection
