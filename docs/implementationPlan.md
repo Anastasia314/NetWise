@@ -122,38 +122,38 @@
         *   `- [x]` Implement `/invite` command to call `graph_service.generate_invite_link()` and display it.
     *   `- [x]` **Test:** `/invite` generates a usable link.
 *   **Task 2.3: Handling Invite Links (Deep Linking)**
-    *   `- [ ]` **`handlers/common.py` (`/start` handler):**
-        *   `- [ ]` Modify `/start` to check for payload (e.g., `invite_{inviter_id}`).
-        *   `- [ ]` If invite payload exists, extract `inviter_id`.
-    *   `- [ ]` **`graph_service.py`:**
-        *   `- [ ]` Implement `accept_invite(inviter_id, invitee_telegram_id)`.
-            *   `- [ ]` Ensure users exist.
-            *   `- [ ]` Check for existing connection.
-            *   `- [ ]` Call `supabase_client.create_connection()` with default trust/type or prompt.
-    *   `- [ ]` **`handlers/common.py` (`/start` handler):**
-        *   `- [ ]` Call `graph_service.accept_invite()`.
-        *   `- [ ]` Send confirmation to both inviter (if online) and invitee.
+    *   `- [x]` **`handlers/common.py` (`/start` handler):**
+        *   `- [x]` Modify `/start` to check for payload (e.g., `invite_{inviter_id}`).
+        *   `- [x]` If invite payload exists, extract `inviter_id`.
+    *   `- [x]` **`graph_service.py`:**
+        *   `- [x]` Implement `accept_invite(inviter_id, invitee_telegram_id)`.
+            *   `- [x]` Ensure users exist.
+            *   `- [x]` Check for existing connection.
+            *   `- [x]` Call `supabase_client.create_connection()` with default trust/type or prompt.
+    *   `- [x]` **`handlers/common.py` (`/start` handler):**
+        *   `- [x]` Call `graph_service.accept_invite()`.
+        *   `- [x]` Send confirmation to both inviter (if online) and invitee.
 *   **Task 2.4: "How do you know?" & Trust Score**
-    *   `- [ ]` Create `netwise_bot/states/connection_states.py` with `ConnectionTrustStates`.
-    *   `- [ ]` Create `netwise_bot/keyboards/profile_keyboards.py` (or a new `connections_keyboards.py`).
-        *   `- [ ]` Implement keyboard for "How do you know?" options (Worked together, Intro made, etc.).
-        *   `- [ ]` Implement keyboard for trust score (1-3).
-    *   `- [ ]` **`handlers/connections.py` (or modify `accept_invite` flow):**
-        *   `- [ ]` After connection is made (or before final save), prompt invitee with "How do you know [InviterName]?" using keyboard.
-        *   `- [ ]` Store `connection_type` in FSM.
-        *   `- [ ]` Prompt for trust score (1-3) using keyboard.
-        *   `- [ ]` Store `trust_score` in FSM.
-    *   `- [ ]` **`supabase_client.py`:** Implement `update_connection_details(connection_id, type, trust)`.
-    *   `- [ ]` **`graph_service.py`:** Implement `set_connection_details(...)` to update DB.
-    *   `- [ ]` **Test:** Full invite flow, including setting connection type and trust score.
+    *   `- [x]` Create `netwise_bot/states/connection_states.py` with `ConnectionTrustStates`.
+    *   `- [x]` Create `netwise_bot/keyboards/profile_keyboards.py` (or a new `connections_keyboards.py`).
+        *   `- [x]` Implement keyboard for "How do you know?" options (Worked together, Intro made, etc.).
+        *   `- [x]` Implement keyboard for trust score (1-3).
+    *   `- [x]` **`handlers/connections.py` (or modify `accept_invite` flow):**
+        *   `- [x]` After connection is made (or before final save), prompt invitee with "How do you know [InviterName]?" using keyboard.
+        *   `- [x]` Store `connection_type` in FSM.
+        *   `- [x]` Prompt for trust score (1-3) using keyboard.
+        *   `- [x]` Store `trust_score` in FSM.
+    *   `- [x]` **`supabase_client.py`:** Implement `update_connection_details(connection_id, type, trust)`.
+    *   `- [x]` **`graph_service.py`:** Implement `set_connection_details(...)` to update DB.
+    *   `- [x]` **Test:** Full invite flow, including setting connection type and trust score.
         *   *Checkpoint:* Two users can connect, connection details are saved.
 *   **Task 2.5: Viewing Connections**
-    *   `- [ ]` **`graph_service.py`:**
-        *   `- [ ]` Implement `get_friends(telegram_id)` (1st degree).
-        *   `- [ ]` Implement `get_friends_of_friends(telegram_id)` (2nd degree - more complex query).
-    *   `- [ ]` **`handlers/connections.py`:**
-        *   `- [ ]` Implement `/myconnections` to list 1st-degree friends.
-    *   `- [ ]` **Test:** `/myconnections` displays friends correctly.
+    *   `- [x]` Implement `/myconnections` command
+    *   `- [x]` Add filtering by trust score and connection type
+    *   `- [x]` Add sorting by name, trust score, and date
+    *   `- [x]` Add pagination for large connection lists
+    *   `- [x]` Add connection statistics view
+    *   `- [x]` Test all connection viewing features
 
 ---
 

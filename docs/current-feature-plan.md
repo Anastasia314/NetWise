@@ -528,3 +528,133 @@ Implementation of the invite system that allows users to invite their friends to
 - Consider adding invite statistics
 - Add proper validation for invite acceptance
 - Consider adding invite rewards (e.g., bonus social points)
+
+# Handling Invite Links (Deep Linking)
+
+## Feature Description
+Implement deep linking functionality to handle invite links in the Telegram bot. When a user clicks an invite link, the bot should process the invitation, create a connection between users, and handle the trust score setup.
+
+## Tasks
+- [ ] Modify `/start` handler to check for invite payload
+- [ ] Extract inviter_id from payload
+- [ ] Implement accept_invite function in graph_service
+- [ ] Add connection creation with default trust/type
+- [ ] Send confirmation messages to both users
+- [ ] Add error handling for invalid invites
+- [ ] Test invite flow end-to-end
+
+## Files Involved
+- netwise_bot/handlers/common.py
+- netwise_bot/services/graph_service.py
+- netwise_bot/services/supabase_client.py
+
+## External Dependencies
+- aiogram (already installed)
+- supabase-py (already installed)
+
+## Notes
+- Need to handle cases where inviter_id is invalid
+- Should prevent self-invites
+- Consider rate limiting invites to prevent spam
+- May need to add logging for invite tracking
+
+# "How do you know?" & Trust Score
+
+## Feature Description
+Implementation of the connection trust and relationship type system that allows users to specify how they know each other and establish trust levels. This includes creating states for collecting this information, implementing the UI for selection, and storing this data in the connections table.
+
+## Tasks
+- [ ] Create `netwise_bot/states/connection_states.py`
+  - [ ] Create `ConnectionTrustStates` class inheriting from `StatesGroup`
+  - [ ] Define states: `connection_type`, `trust_score`
+- [ ] Create `netwise_bot/keyboards/connections_keyboards.py`
+  - [ ] Implement `get_connection_type_keyboard()` with options:
+    - [ ] "Worked together"
+    - [ ] "Introduction made"
+    - [ ] "Met at event"
+    - [ ] "Other"
+  - [ ] Implement `get_trust_score_keyboard()` with options:
+    - [ ] "1 - New acquaintance"
+    - [ ] "2 - Known well"
+    - [ ] "3 - Close connection"
+- [ ] Update `netwise_bot/handlers/connections.py`
+  - [ ] Add FSM handlers for connection type and trust score
+  - [ ] Implement connection type selection handler
+  - [ ] Implement trust score selection handler
+  - [ ] Add validation and error handling
+  - [ ] Update connection in database after completion
+- [ ] Update `netwise_bot/services/graph_service.py`
+  - [ ] Add method to update connection details
+  - [ ] Add validation for trust scores
+  - [ ] Add validation for connection types
+- [ ] Update `netwise_bot/services/supabase_client.py`
+  - [ ] Add method to update connection details
+  - [ ] Add validation for updates
+- [ ] Test the full flow
+  - [ ] Test connection type selection
+  - [ ] Test trust score selection
+  - [ ] Test database updates
+  - [ ] Test error cases
+
+## Files Involved
+- `netwise_bot/states/connection_states.py` (new)
+- `netwise_bot/keyboards/connections_keyboards.py` (new)
+- `netwise_bot/handlers/connections.py` (update)
+- `netwise_bot/services/graph_service.py` (update)
+- `netwise_bot/services/supabase_client.py` (update)
+
+## External Dependencies
+- aiogram (already installed)
+- supabase-py (already installed)
+
+## Notes
+- Trust scores should be validated (1-3 range)
+- Connection types should be validated against allowed values
+- Consider adding descriptions for each trust level
+- Add proper error handling for invalid selections
+- Consider adding the ability to update trust scores later
+- Add logging for trust score changes
+- Consider adding trust score impact on matching algorithm
+- Add proper validation messages for users
+
+# **Task 2.5: Viewing Connections**
+
+**Feature Description:**
+Implementation of functionality to view and manage user connections in the NetWise bot. This includes displaying first-degree connections (direct friends) and their details, with options to view connection types and trust scores.
+
+**Tasks:**
+- [ ] **`graph_service.py`:**
+  - [ ] Implement `get_friends(telegram_id)` method to fetch first-degree connections
+  - [ ] Add filtering options (by trust score, connection type)
+  - [ ] Add sorting options (by name, trust score, connection date)
+  - [ ] Add pagination support for large connection lists
+- [ ] **`handlers/connections.py`:**
+  - [ ] Implement `/myconnections` command handler
+  - [ ] Create keyboard for connection filtering and sorting
+  - [ ] Format connection list with user details
+  - [ ] Add pagination controls
+  - [ ] Add error handling and user feedback
+- [ ] **`keyboards/connections_keyboards.py`:**
+  - [ ] Add keyboard for connection list actions
+  - [ ] Add keyboard for filtering options
+  - [ ] Add keyboard for sorting options
+  - [ ] Add keyboard for pagination controls
+
+**Files Involved:**
+- `netwise_bot/services/graph_service.py` (update)
+- `netwise_bot/handlers/connections.py` (update)
+- `netwise_bot/keyboards/connections_keyboards.py` (update)
+
+**External Dependencies:**
+- `aiogram` (already installed)
+- `supabase-py` (already installed)
+
+**Notes:**
+- Consider implementing caching for frequently accessed connection lists
+- Add proper error handling for database operations
+- Consider adding connection statistics (total connections, average trust score)
+- Add logging for connection viewing operations
+- Consider adding connection search functionality
+- Add proper validation for filter and sort parameters
+- Consider adding connection export functionality
+- Add proper pagination handling for large connection lists

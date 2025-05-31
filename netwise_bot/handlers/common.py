@@ -28,33 +28,68 @@ async def handle_start(
             # Extract inviter's Telegram ID
             inviter_telegram_id = int(args[1].split("_")[1])
             
-            # Get or create the new user
-            user = await user_service.get_or_create_user(
-                message.from_user.id,
-                message.from_user.full_name
-            )
-            
-            if not user:
+            # Prevent self-invites
+            if inviter_telegram_id == message.from_user.id:
                 await message.answer(
-                    "Welcome to NetWise! There was an error creating your account. "
-                    "Please try again later."
-                )
-                return
-                
-            # Process the invite
-            if await graph_service.process_invite(inviter_telegram_id, message.from_user.id):
-                await message.answer(
-                    f"Welcome to NetWise! You've been invited by a friend. "
-                    "You're now connected in the network!"
+                    "Welcome to NetWise! You can't invite yourself. "
+                    "Let's get started with your profile setup."
                 )
             else:
-                await message.answer(
-                    "Welcome to NetWise! There was an error processing your invite. "
-                    "You can still use the bot normally."
+                # Get or create the new user
+                user = await user_service.get_or_create_user(
+                    message.from_user.id,
+                    message.from_user.full_name
                 )
+                
+                if not user:
+                    await message.answer(
+                        "Welcome to NetWise! There was an error creating your account. "
+                        "Please try again later."
+                    )
+                    return
+                    
+                # Check if connection already exists
+                existing_connection = await graph_service.get_connection(
+                    str(inviter_telegram_id),
+                    str(message.from_user.id)
+                )
+                
+                if existing_connection:
+                    await message.answer(
+                        "Welcome to NetWise! You're already connected with this user. "
+                        "Let's continue with your profile setup."
+                    )
+                else:
+                    # Process the invite
+                    if await graph_service.process_invite(inviter_telegram_id, message.from_user.id):
+                        # Get inviter's name for the message
+                        inviter = await user_service.get_profile(inviter_telegram_id)
+                        inviter_name = inviter.get('name', 'A user') if inviter else 'A user'
+                        
+                        await message.answer(
+                            f"Welcome to NetWise! You've been invited by {inviter_name}. "
+                            "You're now connected in the network!"
+                        )
+                        
+                        # Notify the inviter
+                        try:
+                            await message.bot.send_message(
+                                inviter_telegram_id,
+                                f"Great news! {message.from_user.full_name} has joined NetWise through your invite link!"
+                            )
+                        except Exception as e:
+                            print(f"Could not notify inviter: {e}")
+                    else:
+                        await message.answer(
+                            "Welcome to NetWise! There was an error processing your invite. "
+                            "You can still use the bot normally."
+                        )
         except (ValueError, IndexError):
             # If there's any error parsing the invite, just proceed with normal start
-            pass
+            await message.answer(
+                "Welcome to NetWise! The invite link appears to be invalid. "
+                "Let's get started with your profile setup."
+            )
     
     # Get or create user
     user = await user_service.get_or_create_user(
