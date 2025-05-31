@@ -109,18 +109,18 @@
 ### **Phase 2: Connection Graph & Trust (3-4 days)**
 
 *   **Task 2.1: Connections Table & Service Foundation**
-    *   `- [ ]` **Supabase:** Design and create `connections` table (user1_id, user2_id, connection_type, trust_score, status).
-    *   `- [ ]` Create `netwise_bot/services/graph_service.py`.
-    *   `- [ ]` **`supabase_client.py`:**
-        *   `- [ ]` Implement `create_connection(user1_id, user2_id, type, trust, status)`.
-        *   `- [ ]` Implement `fetch_connections(user_id)`.
+    *   `- [x]` **Supabase:** Design and create `connections` table (user1_id, user2_id, connection_type, trust_score, status).
+    *   `- [x]` Create `netwise_bot/services/graph_service.py`.
+    *   `- [x]` **`supabase_client.py`:**
+        *   `- [x]` Implement `create_connection(user1_id, user2_id, type, trust, status)`.
+        *   `- [x]` Implement `fetch_connections(user_id)`.
 *   **Task 2.2: Invite Friends Functionality**
-    *   `- [ ]` Create `netwise_bot/handlers/connections.py`.
-    *   `- [ ]` **`graph_service.py`:**
-        *   `- [ ]` Implement `generate_invite_link(telegram_id)` (simple strategy: `t.me/YourBotName?start=invite_{telegram_id}`).
-    *   `- [ ]` **`handlers/connections.py`:**
-        *   `- [ ]` Implement `/invite` command to call `graph_service.generate_invite_link()` and display it.
-    *   `- [ ]` **Test:** `/invite` generates a usable link.
+    *   `- [x]` Create `netwise_bot/handlers/connections.py`.
+    *   `- [x]` **`graph_service.py`:**
+        *   `- [x]` Implement `generate_invite_link(telegram_id)` (simple strategy: `t.me/YourBotName?start=invite_{telegram_id}`).
+    *   `- [x]` **`handlers/connections.py`:**
+        *   `- [x]` Implement `/invite` command to call `graph_service.generate_invite_link()` and display it.
+    *   `- [x]` **Test:** `/invite` generates a usable link.
 *   **Task 2.3: Handling Invite Links (Deep Linking)**
     *   `- [ ]` **`handlers/common.py` (`/start` handler):**
         *   `- [ ]` Modify `/start` to check for payload (e.g., `invite_{inviter_id}`).

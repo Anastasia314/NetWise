@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 from ..config import get_supabase_url, get_supabase_key
@@ -182,4 +182,59 @@ class SupabaseClient:
         except Exception as e:
             # Log the error here
             print(f"Error fetching inactive users: {e}")
+            return []
+
+    async def create_connection(
+        self,
+        user1_id: str,
+        user2_id: str,
+        connection_type: str,
+        trust_score: int,
+        status: str = "pending"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a new connection between two users.
+        
+        Args:
+            user1_id: ID of the first user
+            user2_id: ID of the second user
+            connection_type: Type of connection
+            trust_score: Trust score (1-3)
+            status: Connection status
+            
+        Returns:
+            Dict containing the created connection data or None if creation failed
+        """
+        try:
+            data = {
+                "user1_id": user1_id,
+                "user2_id": user2_id,
+                "connection_type": connection_type,
+                "trust_score": trust_score,
+                "status": status
+            }
+            response = self._client.table('connections').insert(data).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error creating connection: {e}")
+            return None
+
+    async def fetch_connections(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch all connections for a user.
+        
+        Args:
+            user_id: ID of the user
+            
+        Returns:
+            List of connections where the user is either user1 or user2
+        """
+        try:
+            # Query connections where user is either user1 or user2
+            response = self._client.table('connections').select('*').or_(
+                f'user1_id.eq.{user_id},user2_id.eq.{user_id}'
+            ).execute()
+            return response.data
+        except Exception as e:
+            print(f"Error fetching connections: {e}")
             return [] 

@@ -437,3 +437,94 @@ Implementation of basic user activity tracking functionality to monitor user eng
 - Consider adding activity-based features (e.g., rewards for active users)
 - Add monitoring for inactive users
 - Consider adding activity-based search filters
+
+# Task 2.1: Connections Table & Service Foundation
+
+## Feature Description
+Implementation of the core connection system that will allow users to establish and manage their professional network within NetWise. This includes creating the database structure for connections and implementing the basic service layer for managing these connections.
+
+## Tasks
+- [ ] Create connections table in Supabase with the following columns:
+  - [ ] id (uuid, primary key)
+  - [ ] user1_id (uuid, foreign key to users.id)
+  - [ ] user2_id (uuid, foreign key to users.id)
+  - [ ] connection_type (text, enum: 'worked_together', 'intro_made', 'met_at_event', 'other')
+  - [ ] trust_score (integer, range 1-3)
+  - [ ] status (text, enum: 'pending', 'active', 'blocked')
+  - [ ] created_at (timestamp with time zone)
+  - [ ] updated_at (timestamp with time zone)
+- [ ] Create graph_service.py with basic connection management functions
+- [ ] Implement create_connection function in supabase_client.py
+- [ ] Implement fetch_connections function in supabase_client.py
+- [ ] Add appropriate indexes and constraints to the connections table
+- [ ] Add RLS policies for the connections table
+
+## Files Involved
+- netwise_bot/services/graph_service.py (new)
+- netwise_bot/services/supabase_client.py (modify)
+- Supabase database schema (modify)
+
+## External Dependencies
+- supabase-py (already installed)
+- uuid (Python standard library)
+
+## Notes
+- Need to ensure bidirectional connections (if A is connected to B, B is connected to A)
+- Consider adding a unique constraint on (user1_id, user2_id) to prevent duplicate connections
+- Trust score should be validated to be between 1-3
+- Connection type should be validated against allowed values
+- Need to handle edge cases like self-connections
+
+# Task 2.2: Invite Friends Functionality
+
+## Feature Description
+Implementation of the invite system that allows users to invite their friends to join NetWise. This includes generating unique invite links, handling deep linking, and managing the invite flow through the bot.
+
+## Tasks
+- [ ] Create `netwise_bot/handlers/connections.py`
+  - [ ] Create router for connection-related handlers
+  - [ ] Implement `/invite` command handler
+  - [ ] Add invite link generation and display
+  - [ ] Add error handling and user feedback
+- [ ] Update `netwise_bot/services/graph_service.py`
+  - [ ] Add `generate_invite_link(telegram_id)` method
+  - [ ] Implement invite link format: `t.me/YourBotName?start=invite_{telegram_id}`
+  - [ ] Add validation for invite links
+- [ ] Update `netwise_bot/handlers/common.py`
+  - [ ] Modify `/start` handler to check for invite payload
+  - [ ] Add invite acceptance flow
+  - [ ] Add welcome message for invited users
+- [ ] Add invite tracking in Supabase
+  - [ ] Create `invites` table with columns:
+    - [ ] id (uuid, primary key)
+    - [ ] inviter_id (uuid, foreign key to users.id)
+    - [ ] invitee_id (uuid, foreign key to users.id)
+    - [ ] status (text: 'pending', 'accepted', 'declined')
+    - [ ] created_at (timestamp)
+    - [ ] updated_at (timestamp)
+  - [ ] Add appropriate indexes and constraints
+- [ ] Add RLS policies for the invites table
+- [ ] Test the invite flow
+  - [ ] Test invite link generation
+  - [ ] Test invite acceptance
+  - [ ] Test error cases
+
+## Files Involved
+- `netwise_bot/handlers/connections.py` (new)
+- `netwise_bot/handlers/common.py` (modify)
+- `netwise_bot/services/graph_service.py` (modify)
+- Supabase database schema (new table)
+
+## External Dependencies
+- aiogram (already installed)
+- supabase-py (already installed)
+
+## Notes
+- Invite links should be unique per user
+- Consider adding invite limits per user
+- Add proper error handling for invalid invites
+- Consider adding invite expiration
+- Add logging for invite tracking
+- Consider adding invite statistics
+- Add proper validation for invite acceptance
+- Consider adding invite rewards (e.g., bonus social points)

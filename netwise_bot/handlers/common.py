@@ -2,6 +2,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from ..services.user_service import UserService
+from ..services.graph_service import GraphService
 from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_main_menu_keyboard, get_search_settings_keyboard
 from ..states.profile_states import ProfileStates
 from ..handlers.profile import show_profile
@@ -13,23 +14,73 @@ router = Router()
 user_service = UserService()
 
 @router.message(Command("start"))
-async def cmd_start(message: types.Message):
-    """
-    Handle the /start command.
+async def handle_start(message: types.Message, state: FSMContext, user_service: UserService, graph_service: GraphService):
+    """Handle /start command and invite links."""
+    # Check if this is an invite link
+    args = message.text.split()
+    if len(args) > 1 and args[1].startswith("invite_"):
+        try:
+            # Extract inviter's Telegram ID
+            inviter_telegram_id = int(args[1].split("_")[1])
+            
+            # Get or create the new user
+            user = await user_service.get_or_create_user(
+                message.from_user.id,
+                message.from_user.full_name
+            )
+            
+            if not user:
+                await message.answer(
+                    "Welcome to NetWise! There was an error creating your account. "
+                    "Please try again later."
+                )
+                return
+                
+            # Process the invite
+            if await graph_service.process_invite(inviter_telegram_id, message.from_user.id):
+                await message.answer(
+                    f"Welcome to NetWise! You've been invited by a friend. "
+                    "You're now connected in the network!"
+                )
+            else:
+                await message.answer(
+                    "Welcome to NetWise! There was an error processing your invite. "
+                    "You can still use the bot normally."
+                )
+        except (ValueError, IndexError):
+            # If there's any error parsing the invite, just proceed with normal start
+            pass
     
-    Args:
-        message (types.Message): The message object
-    """
     # Get or create user
-    user = user_service.get_or_create_user(
-        telegram_id=message.from_user.id,
-        name=message.from_user.full_name
+    user = await user_service.get_or_create_user(
+        message.from_user.id,
+        message.from_user.full_name
     )
     
-    if user.get('is_new', False):
-        await message.answer("Welcome to NetWise! Let's create your profile.", reply_markup=get_initial_setup_keyboard())
+    if not user:
+        await message.answer(
+            "Welcome to NetWise! There was an error creating your account. "
+            "Please try again later."
+        )
+        return
+    
+    # Check if user has a profile
+    profile = await user_service.get_profile(message.from_user.id)
+    
+    if not profile:
+        # New user without profile
+        await message.answer(
+            "Welcome to NetWise! Let's create your professional profile to help you "
+            "connect with the right people.",
+            reply_markup=get_initial_setup_keyboard()
+        )
     else:
-        await message.answer("Welcome back to NetWise!", reply_markup=get_main_menu_keyboard())
+        # Existing user with profile
+        await message.answer(
+            f"Welcome back to NetWise, {profile.get('name', 'there')}! "
+            "What would you like to do?",
+            reply_markup=get_main_menu_keyboard()
+        )
 
 @router.message(Command("help"))
 async def cmd_help(message: types.Message):
