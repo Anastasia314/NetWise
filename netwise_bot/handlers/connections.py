@@ -9,6 +9,7 @@ from ..services.graph_service import GraphService
 from ..services.supabase_client import SupabaseClient
 from ..states.connection_states import ConnectionTrustStates
 from ..keyboards.connections_keyboards import get_connection_type_keyboard, get_trust_score_keyboard, get_connection_list_keyboard, get_connection_stats_keyboard
+from ..keyboards.main_menu import get_menu_button
 import logging
 from typing import Dict, Any
 
@@ -36,17 +37,13 @@ async def generate_invite_link(callback: CallbackQuery):
         # Generate invite link using Telegram ID
         bot_username = get_bot_username()
         invite_link = f"https://t.me/{bot_username}?start=invite_{user['telegram_id']}"
-        # Create keyboard with copy button
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📋 Copy Link", callback_data="copy_invite")]
-        ])
+        # Send link without keyboard
         await callback.message.answer(
             f"🔗 *Your Invite Link*\n\n"
             f"Share this link with others to connect with them:\n"
             f"`{invite_link}`\n\n"
             f"The person who clicks this link will be automatically connected to you.",
-            parse_mode="Markdown",
-            reply_markup=keyboard
+            parse_mode="Markdown"
         )
         await callback.answer()
     except Exception as e:
@@ -80,6 +77,9 @@ async def handle_deep_link(message: Message, state: FSMContext):
     logger.info(f"Processing deep link message: {message.text}")
     
     try:
+        # Сначала отправляем приветствие
+        await message.answer("👋 Welcome to NetWise!", reply_markup=get_menu_button())
+        
         # Extract inviter ID from deep link
         parts = message.text.split(maxsplit=1)
         args = parts[1] if len(parts) > 1 else ""
@@ -222,32 +222,26 @@ async def process_connection_type(
     """Process connection type selection."""
     try:
         logger.info(f"Processing connection type selection: {callback.data}")
-        
         # Extract connection type from callback data
         connection_type = callback.data.replace("conn_type_", "")
         logger.info(f"Selected connection type: {connection_type}")
-        
         # Validate connection type
         if not graph_service.validate_connection_type(connection_type):
             logger.error(f"Invalid connection type: {connection_type}")
             await callback.answer("Invalid connection type selected.")
             return
-            
         # Store connection type in state
         await state.update_data(connection_type=connection_type)
         logger.info(f"Stored connection type in state: {connection_type}")
-        
         # Move to trust score state
         await state.set_state(ConnectionTrustStates.trust_score)
         logger.info("Set state to trust_score")
-        
         # Send trust score keyboard
         await callback.message.edit_text(
             "What's your level of trust with this person?",
             reply_markup=get_trust_score_keyboard()
         )
         logger.info("Sent trust score keyboard")
-        
     except Exception as e:
         logger.error(f"Error processing connection type: {e}", exc_info=True)
         await callback.message.edit_text(
@@ -549,7 +543,7 @@ async def handle_my_connections_button(callback: CallbackQuery):
         
     except Exception as e:
         logger.error(f"Error showing connections: {e}")
-        await callback.answer("❌ Error showing connections", show_alert=True)
+        await callback.answer("❌ Error showing connections", show_alert=True) 
 
 async def format_and_send_connections(
     message: Message,

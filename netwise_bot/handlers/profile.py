@@ -127,9 +127,10 @@ async def process_profile_confirmation(callback: types.CallbackQuery, state: FSM
     
     if success:
         await callback.message.edit_text(
-            "✅ Your profile has been successfully created! You can view it anytime using /myprofile",
+            "✅ Your profile has been successfully created!",
             parse_mode="Markdown"
         )
+        await show_profile(callback.message, telegram_id=callback.from_user.id)
     else:
         await callback.message.edit_text(
             "❌ Sorry, there was an error saving your profile. Please try again later.",
@@ -157,7 +158,7 @@ async def process_profile_cancellation(callback: types.CallbackQuery, state: FSM
     await callback.answer()
     await state.clear()
     await callback.message.edit_text(
-        "Profile creation cancelled. You can create your profile later using /start",
+        "Profile creation cancelled. You can create your profile later using menu",
         parse_mode="Markdown"
     )
 

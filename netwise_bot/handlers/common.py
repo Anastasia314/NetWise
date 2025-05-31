@@ -48,7 +48,7 @@ async def handle_start(
         logger.info(f"User profile status: {'exists' if profile else 'not found'}")
         
         # Сначала отправляем приветствие
-        await message.answer("👋 Welcome to NetWise!")
+        await message.answer("👋 Welcome to NetWise!", reply_markup=get_menu_button())
         
         if not profile:
             # New user without profile
