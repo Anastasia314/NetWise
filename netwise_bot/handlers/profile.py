@@ -3,7 +3,7 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from ..services.user_service import UserService
-from ..keyboards.profile_keyboards import get_profile_confirmation_keyboard, get_profile_cancel_keyboard, get_profile_edit_keyboard
+from ..keyboards.profile_keyboards import get_profile_confirmation_keyboard, get_profile_cancel_keyboard, get_profile_edit_keyboard, get_search_settings_keyboard
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 
@@ -131,6 +131,12 @@ async def process_profile_confirmation(callback: types.CallbackQuery, state: FSM
             parse_mode="Markdown"
         )
         await show_profile(callback.message, telegram_id=callback.from_user.id)
+        
+        # Prompt for search visibility
+        await callback.message.answer(
+            "Your profile is complete! Would you like to make yourself visible in search?",
+            reply_markup=get_search_settings_keyboard()
+        )
     else:
         await callback.message.edit_text(
             "❌ Sorry, there was an error saving your profile. Please try again later.",

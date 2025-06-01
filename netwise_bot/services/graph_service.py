@@ -296,7 +296,7 @@ class GraphService:
                 
             # Sort connections
             if sort_by == "name":
-                connections.sort(key=lambda x: x['user_details'].get('name', ''))
+                connections.sort(key=lambda x: x.get('user_details', {}).get('name', '') if x.get('user_details') else '')
             elif sort_by == "trust_score":
                 connections.sort(key=lambda x: x['trust_score'], reverse=True)
             elif sort_by == "created_at":

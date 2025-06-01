@@ -31,10 +31,13 @@ async def handle_start(
     try:
         logger.info(f"Processing /start command for user {message.from_user.id}")
         
+        # Get user's name from Telegram profile or username
+        user_name = message.from_user.full_name or message.from_user.username or f"User{message.from_user.id}"
+        
         # Get or create user
         user = await user_service.get_or_create_user(
             message.from_user.id,
-            message.from_user.full_name
+            user_name
         )
         
         if not user:
@@ -49,11 +52,11 @@ async def handle_start(
         profile = await user_service.get_profile(message.from_user.id)
         logger.info(f"User profile status: {'exists' if profile else 'not found'}")
         
-        # Сначала отправляем приветствие
+        # Send welcome message
         await message.answer("👋 Welcome to NetWise!", reply_markup=get_menu_button())
         
-        if not profile:
-            # New user without profile
+        if not profile or not all(key in profile for key in ['role', 'industry', 'skills', 'goals', 'interests']):
+            # New user without complete profile
             logger.info(f"New user {message.from_user.id} - showing initial setup")
             await message.answer(
                 "Let's create your professional profile to help you "
@@ -61,14 +64,20 @@ async def handle_start(
                 reply_markup=get_initial_setup_keyboard()
             )
         else:
-            # Existing user with profile
+            # Existing user with complete profile
             logger.info(f"Existing user {message.from_user.id} - showing profile menu")
             await message.answer(
                 f"Welcome back, {profile.get('name', 'there')}! What would you like to do?",
                 reply_markup=get_profile_menu_keyboard()
             )
+            
+            # Check if user is active in search
+            if not profile.get('is_active_in_search'):
+                await message.answer(
+                    "Your profile is complete! Would you like to make yourself visible in search?",
+                    reply_markup=get_search_settings_keyboard()
+                )
         
-        # Добавляем кнопку меню в нижнюю панель
     except Exception as e:
         logger.error(f"Error in handle_start: {e}", exc_info=True)
         await message.answer(

@@ -36,7 +36,7 @@ class UserService:
                 defaults={
                     "social_points": 0,
                     "free_requests_remaining": 5,
-                    "is_active_in_search": True
+                    "is_active_in_search": False  # Default to not visible in search
                 }
             )
         except Exception as e:
