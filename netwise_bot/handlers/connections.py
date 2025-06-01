@@ -9,7 +9,8 @@ from ..services.graph_service import GraphService
 from ..services.supabase_client import SupabaseClient
 from ..states.connection_states import ConnectionTrustStates
 from ..keyboards.connections_keyboards import get_connection_type_keyboard, get_trust_score_keyboard, get_connection_list_keyboard, get_connection_stats_keyboard
-from ..keyboards.main_menu import get_menu_button
+from ..keyboards.main_menu import get_menu_button, get_profile_menu_keyboard
+from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_settings_keyboard
 import logging
 from typing import Dict, Any
 
@@ -251,62 +252,64 @@ async def process_connection_type(
         await callback.answer()
 
 @router.callback_query(F.data.startswith("trust_score_"))
-async def process_trust_score(
-    callback: types.CallbackQuery,
-    state: FSMContext
-):
-    """Process trust score selection and complete the flow."""
+async def handle_trust_score(callback: types.CallbackQuery, state: FSMContext):
+    """Handle trust score selection."""
     try:
-        logger.info(f"Processing trust score selection: {callback.data}")
-        
-        # Extract trust score from callback data
-        trust_score = int(callback.data.replace("trust_score_", ""))
+        trust_score = int(callback.data.split("_")[-1])
         logger.info(f"Selected trust score: {trust_score}")
         
-        # Validate trust score
-        if not graph_service.validate_trust_score(trust_score):
-            logger.error(f"Invalid trust score: {trust_score}")
-            await callback.answer("Invalid trust score selected.")
-            return
-            
-        # Get all data from state
+        # Get stored data
         data = await state.get_data()
         logger.info(f"Got data from state: {data}")
         
-        user1_id = data['user1_id']
-        user2_id = data['user2_id']
-        connection_type = data['connection_type']
-        
-        # Create connection with selected details
+        # Create connection
         connection = await graph_service.create_connection(
-            user1_id=user1_id,
-            user2_id=user2_id,
-            connection_type=connection_type,
-            trust_score=trust_score,
-            status="active"
+            user1_id=data['user1_id'],
+            user2_id=data['user2_id'],
+            connection_type=data['connection_type'],
+            trust_score=trust_score
         )
-        logger.info(f"Created connection: {connection}")
         
         if connection:
-            # Clear state
+            logger.info(f"Created connection: {connection}")
             await state.clear()
-            logger.info("Cleared state")
-            
-            # Send success message
             await callback.message.edit_text(
-                "✅ Connection created successfully! You can now view your connections using /myconnections"
+                "Connection created successfully! You can now view your connections using /myconnections"
             )
-            logger.info("Sent success message")
+            
+            # Check if user has a complete profile
+            profile = await user_service.get_profile(callback.from_user.id)
+            if not profile or any(not profile.get(key) for key in ['role', 'industry', 'skills', 'goals', 'interests']):
+                # New user without complete profile
+                logger.info(f"New user {callback.from_user.id} - showing initial setup after connection")
+                await callback.message.answer(
+                    "Let's create your professional profile to help you "
+                    "connect with the right people.",
+                    reply_markup=get_initial_setup_keyboard()
+                )
+            else:
+                # Existing user with complete profile
+                logger.info(f"Existing user {callback.from_user.id} - showing profile menu after connection")
+                await callback.message.answer(
+                    f"Welcome back, {profile.get('name', 'there')}! What would you like to do?",
+                    reply_markup=get_profile_menu_keyboard()
+                )
+                
+                # Check if user is active in search
+                if not profile.get('is_active_in_search'):
+                    await callback.message.answer(
+                        "Your profile is complete! Would you like to make yourself visible in search?",
+                        reply_markup=get_search_settings_keyboard()
+                    )
         else:
-            logger.error("Failed to create connection")
             await callback.message.edit_text(
-                "❌ Error creating connection. Please try again later."
+                "Failed to create connection. Please try again later."
             )
             
     except Exception as e:
-        logger.error(f"Error processing trust score: {e}", exc_info=True)
+        logger.error(f"Error in handle_trust_score: {e}", exc_info=True)
         await callback.message.edit_text(
-            "Sorry, there was an error. Please try again later."
+            "An error occurred while creating the connection. Please try again later."
         )
     finally:
         await callback.answer()

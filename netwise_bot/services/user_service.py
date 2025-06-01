@@ -11,24 +11,29 @@ class UserService:
     def __init__(self):
         self._client = SupabaseClient()
 
-    async def get_or_create_user(self, telegram_id: int, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def get_or_create_user(self, telegram_id: int, name: Optional[str] = None, username: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Get a user by Telegram ID or create if not exists.
         
         Args:
             telegram_id: Telegram ID of the user
             name: Optional name of the user
-            
+            username: Optional username of the user
         Returns:
             User data dictionary or None if operation failed
         """
         try:
             # Try to get existing user
             user = await self._client.fetch_user_by_telegram_id(telegram_id)
-            
             if user:
                 return user
-                
+
+            # If name is not provided, try to get it from Telegram profile or username
+            if not name:
+                # Try to fetch Telegram profile (if possible)
+                # (In most cases, username should be passed from handler)
+                name = username or f"User{telegram_id}"
+
             # Create new user if doesn't exist
             return await self._client.create_user(
                 telegram_id=telegram_id,

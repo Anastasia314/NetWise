@@ -45,4 +45,21 @@ def get_profile_edit_keyboard() -> InlineKeyboardMarkup:
             ]
         ]
     )
+    return keyboard
+
+def get_search_settings_keyboard() -> InlineKeyboardMarkup:
+    """
+    Create keyboard for search visibility settings.
+    
+    Returns:
+        InlineKeyboardMarkup: Keyboard with "Show in Search" and "Hide from Search" buttons
+    """
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="👁 Show in Search", callback_data="search_show"),
+                InlineKeyboardButton(text="👻 Hide from Search", callback_data="search_hide")
+            ]
+        ]
+    )
     return keyboard 

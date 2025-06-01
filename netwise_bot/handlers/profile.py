@@ -123,7 +123,7 @@ async def process_profile_confirmation(callback: types.CallbackQuery, state: FSM
     user_data = await state.get_data()
     
     # Update profile in database
-    success = user_service.update_profile(callback.from_user.id, user_data)
+    success = await user_service.update_profile(callback.from_user.id, user_data)
     
     if success:
         await callback.message.edit_text(

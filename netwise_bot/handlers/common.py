@@ -31,13 +31,15 @@ async def handle_start(
     try:
         logger.info(f"Processing /start command for user {message.from_user.id}")
         
-        # Get user's name from Telegram profile or username
-        user_name = message.from_user.full_name or message.from_user.username or f"User{message.from_user.id}"
+        # Get user's name and username from Telegram profile
+        user_name = message.from_user.full_name
+        user_username = message.from_user.username
         
         # Get or create user
         user = await user_service.get_or_create_user(
             message.from_user.id,
-            user_name
+            user_name,
+            user_username
         )
         
         if not user:
@@ -151,14 +153,14 @@ async def handle_search_settings_callback(callback: types.CallbackQuery):
     action = callback.data.split("_")[1]
     
     if action == "show":
-        success = user_service.set_search_status(callback.from_user.id, True)
+        success = await user_service.set_search_status(callback.from_user.id, True)
         if success:
             await callback.message.edit_text("Your profile is now visible in search.")
         else:
             await callback.message.edit_text("Failed to update search settings. Please try again.")
     
     elif action == "hide":
-        success = user_service.set_search_status(callback.from_user.id, False)
+        success = await user_service.set_search_status(callback.from_user.id, False)
         if success:
             await callback.message.edit_text("Your profile is now hidden from search.")
         else:
