@@ -2,7 +2,8 @@ from aiogram import Router, types, F
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 import logging
-from ..services.user_service import UserService
+from netwise_bot.services.user_service import user_service, UserService
+from netwise_bot.services.notification_service import NotificationService
 from ..services.graph_service import GraphService
 from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_settings_keyboard
 from ..states.profile_states import ProfileStates
@@ -13,9 +14,6 @@ from ..states.request_states import RequestStates
 
 # Create router for common handlers
 router = Router()
-
-# Initialize UserService
-user_service = UserService()
 
 # Get logger
 logger = logging.getLogger(__name__)

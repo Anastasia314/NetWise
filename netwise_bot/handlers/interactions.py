@@ -10,12 +10,15 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from netwise_bot.services.supabase_client import supabase_client
-from netwise_bot.services.user_service import user_service
-from netwise_bot.services.request_service import request_service
+from netwise_bot.services.user_service import user_service, UserService
+from netwise_bot.services.request_service import request_service, RequestService
 from netwise_bot.keyboards.interaction_keyboards import (
     get_helper_response_keyboard,
-    get_introducer_response_keyboard
+    get_introducer_response_keyboard,
+    get_help_response_keyboard
 )
+from netwise_bot.services.notification_service import NotificationService
+from netwise_bot.utils.constants import POINTS_PER_HELP
 
 # Initialize router
 router = Router()
@@ -435,4 +438,85 @@ async def handle_helper_response_callback(callback: CallbackQuery):
         await handle_helper_response(callback, request_id, requester_id, accepted)
     except Exception as e:
         logger.error(f"Error handling helper response callback: {e}")
-        await callback.answer("An error occurred") 
+        await callback.answer("An error occurred")
+
+@router.callback_query(F.data.startswith("offer_help_"))
+async def handle_help_offer(callback: CallbackQuery, request_service: RequestService, 
+                          user_service: UserService, notification_service: NotificationService):
+    """Handle when a user offers to help with a request."""
+    try:
+        # Parse callback data
+        _, request_id, requester_id = callback.data.split("_")
+        helper_id = callback.from_user.id
+
+        # Update request status
+        success = await request_service.update_request_status(request_id, "pending_help")
+        if not success:
+            await callback.answer("Извините, произошла ошибка. Попробуйте позже.")
+            return
+
+        # Notify requester
+        await notification_service.notify_help_offer(helper_id, int(requester_id), request_id)
+
+        # Add social points to helper
+        await user_service.add_social_points(helper_id, POINTS_PER_HELP)
+
+        # Log activity
+        await user_service.log_activity(
+            helper_id,
+            "helped_on_request",
+            request_id,
+            POINTS_PER_HELP
+        )
+
+        await callback.answer("Спасибо за готовность помочь! Запросчик будет уведомлен.")
+        await callback.message.edit_reply_markup(reply_markup=None)
+
+    except Exception as e:
+        logger.error(f"Error handling help offer: {e}")
+        await callback.answer("Произошла ошибка. Попробуйте позже.")
+
+@router.callback_query(F.data.startswith("accept_help_"))
+async def handle_help_acceptance(callback: CallbackQuery, request_service: RequestService,
+                               notification_service: NotificationService):
+    """Handle when a requester accepts help."""
+    try:
+        # Parse callback data
+        _, request_id, helper_id = callback.data.split("_")
+        requester_id = callback.from_user.id
+
+        # Update request status
+        success = await request_service.update_request_status(request_id, "help_accepted")
+        if not success:
+            await callback.answer("Извините, произошла ошибка. Попробуйте позже.")
+            return
+
+        # Notify helper
+        await notification_service.notify_help_accepted(int(helper_id), requester_id, request_id)
+
+        await callback.answer("Спасибо! Помощник будет уведомлен.")
+        await callback.message.edit_reply_markup(reply_markup=None)
+
+    except Exception as e:
+        logger.error(f"Error handling help acceptance: {e}")
+        await callback.answer("Произошла ошибка. Попробуйте позже.")
+
+@router.callback_query(F.data.startswith("decline_help_"))
+async def handle_help_decline(callback: CallbackQuery, request_service: RequestService):
+    """Handle when a requester declines help."""
+    try:
+        # Parse callback data
+        _, request_id, helper_id = callback.data.split("_")
+
+        # Update request status back to open
+        success = await request_service.update_request_status(request_id, "open")
+        if not success:
+            await callback.answer("Извините, произошла ошибка. Попробуйте позже.")
+            return
+
+        await callback.answer("Вы отклонили предложение помощи.")
+        await callback.message.edit_reply_markup(reply_markup=None)
+
+    except Exception as e:
+        logger.error(f"Error handling help decline: {e}")
+        await callback.answer("Произошла ошибка. Попробуйте позже.") 

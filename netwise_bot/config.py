@@ -3,6 +3,7 @@ Configuration module for loading environment variables
 """
 
 import os
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -21,6 +22,23 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+@dataclass
+class Config:
+    """Configuration class to hold all settings"""
+    telegram_token: str
+    supabase_url: str
+    supabase_key: str
+    log_level: str
+
+def load_config() -> Config:
+    """Load and return configuration object"""
+    return Config(
+        telegram_token=TELEGRAM_BOT_TOKEN,
+        supabase_url=SUPABASE_URL,
+        supabase_key=SUPABASE_KEY,
+        log_level=LOG_LEVEL
+    )
 
 def get_bot_token() -> str:
     """Get the bot token from environment variables."""

@@ -923,3 +923,86 @@ Implementation of the interaction flow when a user wants to ask a potential help
 - Add proper error messages for users
 - Consider adding response tracking
 - Add proper pagination for large result sets
+
+# Daily Digests & Notifications
+
+## Feature Description
+Implement a system for sending daily digests to users containing relevant requests they can help with, based on their skills and connections. This includes setting up a scheduler, implementing notification logic, and handling user responses to digest items.
+
+## Tasks
+- [ ] Create scheduler setup with AsyncIOScheduler
+- [ ] Implement daily digest generation logic
+- [ ] Create notification service for sending digests
+- [ ] Implement "Готов помочь" (Ready to Help) interaction flow
+- [ ] Add activity history tracking for help offers
+- [ ] Set up inactivity management system
+- [ ] Test daily digest delivery and interaction flow
+
+## Files Involved
+- `netwise_bot/scheduler.py` (new)
+- `netwise_bot/services/notification_service.py` (new)
+- `netwise_bot/services/request_service.py` (modify)
+- `netwise_bot/handlers/interactions.py` (modify)
+- `netwise_bot/services/user_service.py` (modify)
+- `main.py` (modify)
+
+## External Dependencies
+- apscheduler
+- aiogram
+- supabase-py
+
+## Notes
+- Scheduler should run daily at 9 AM local time
+- Need to handle timezone differences
+- Consider rate limiting for digest generation
+- Implement proper error handling for failed digest deliveries
+- Add logging for monitoring digest delivery success/failure
+- Consider implementing a retry mechanism for failed deliveries
+
+# **Task 4.4: Inactivity Management**
+
+**Feature Description:**
+Implementation of a system to manage inactive users in the NetWise bot. This includes tracking user activity, deactivating users who haven't been active for a specified period, and optionally sending reminder notifications before deactivation. The system will help maintain an active user base and improve the quality of matches.
+
+**Tasks:**
+- [ ] **`user_service.py`:**
+  - [ ] Implement `deactivate_inactive_users(days_inactive_threshold)` method:
+    - [ ] Query users where `last_active_at` is older than threshold
+    - [ ] Set `is_active_in_search = false` for inactive users
+    - [ ] Add logging for deactivated users
+    - [ ] Return count of deactivated users
+- [ ] **`scheduler.py`:**
+  - [ ] Add job to run `deactivate_inactive_users_job` daily
+  - [ ] Configure job to run at a suitable time (e.g., midnight)
+  - [ ] Add error handling and logging
+- [ ] **(Optional) `notification_service.py`:**
+  - [ ] Implement `send_inactive_reminders` method:
+    - [ ] Find users approaching inactivity threshold
+    - [ ] Send reminder message about potential deactivation
+    - [ ] Add logging for sent reminders
+- [ ] **Test the inactivity management system:**
+  - [ ] Test user deactivation
+  - [ ] Test scheduler job execution
+  - [ ] Test reminder notifications (if implemented)
+  - [ ] Verify logging and error handling
+
+**Files Involved:**
+- `netwise_bot/services/user_service.py` (update)
+- `netwise_bot/scheduler.py` (update)
+- `netwise_bot/services/notification_service.py` (update)
+- `main.py` (update to register scheduler job)
+
+**External Dependencies:**
+- `apscheduler` (already installed)
+- `aiogram` (already installed)
+- `supabase-py` (already installed)
+
+**Notes:**
+- Default inactivity threshold should be 30 days
+- Consider adding a grace period before deactivation
+- Add proper error handling for database operations
+- Implement logging for monitoring and debugging
+- Consider adding reactivation functionality
+- Add proper validation for inactivity threshold
+- Consider adding activity statistics
+- Add proper error messages for users

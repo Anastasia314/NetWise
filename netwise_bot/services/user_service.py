@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from .supabase_client import SupabaseClient
+from .supabase_client import SupabaseClient, supabase_client
 from netwise_bot.utils.constants import POINTS_PER_HELP, FREE_REQUESTS_PER_MONTH
 import logging
 
@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class UserService:
-    def __init__(self):
-        self._client = SupabaseClient()
+    def __init__(self, supabase_client: SupabaseClient):
+        self.supabase = supabase_client
 
     async def get_or_create_user(self, telegram_id: int, name: Optional[str] = None, username: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
@@ -24,7 +24,7 @@ class UserService:
         """
         try:
             # Try to get existing user
-            user = await self._client.fetch_user_by_telegram_id(telegram_id)
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
             if user:
                 return user
 
@@ -35,7 +35,7 @@ class UserService:
                 name = username or f"User{telegram_id}"
 
             # Create new user if doesn't exist
-            return await self._client.create_user(
+            return await self.supabase.create_user(
                 telegram_id=telegram_id,
                 name=name,
                 defaults={
@@ -59,7 +59,7 @@ class UserService:
             Profile data dictionary or None if not found
         """
         try:
-            return await self._client.fetch_user_profile(telegram_id)
+            return await self.supabase.fetch_user_profile(telegram_id)
         except Exception as e:
             print(f"Error in get_profile: {e}")
             return None
@@ -76,7 +76,7 @@ class UserService:
             bool: True if update successful, False otherwise
         """
         try:
-            return bool(await self._client.update_user_profile(telegram_id, profile_data))
+            return bool(await self.supabase.update_user_profile(telegram_id, profile_data))
         except Exception as e:
             print(f"Error in update_profile: {e}")
             return False
@@ -92,7 +92,7 @@ class UserService:
             bool: True if update successful, False otherwise
         """
         try:
-            return bool(await self._client.update_user_last_active(telegram_id))
+            return bool(await self.supabase.update_user_last_active(telegram_id))
         except Exception as e:
             print(f"Error in update_user_activity: {e}")
             return False
@@ -109,7 +109,7 @@ class UserService:
             bool: True if update successful, False otherwise
         """
         try:
-            return bool(await self._client.update_user_search_status(telegram_id, is_active))
+            return bool(await self.supabase.update_user_search_status(telegram_id, is_active))
         except Exception as e:
             print(f"Error in set_search_status: {e}")
             return False
@@ -124,7 +124,7 @@ class UserService:
         Returns:
             List[Dict[str, Any]]: List of inactive users
         """
-        return self._client.get_inactive_users(days_threshold)
+        return self.supabase.get_inactive_users(days_threshold)
 
     def _validate_profile_data(self, profile_data: Dict[str, Any]) -> bool:
         """
@@ -167,7 +167,7 @@ class UserService:
             Dict containing user data or None if not found
         """
         try:
-            return await self._client.get_user_by_id(user_id)
+            return await self.supabase.get_user_by_id(user_id)
         except Exception as e:
             logger.error(f"Error getting user by ID: {e}")
             return None
@@ -189,7 +189,7 @@ class UserService:
                 logger.warning(f"Attempted to add non-positive points: {points}")
                 return False
 
-            result = await self._client.update_user_social_points(telegram_id, points)
+            result = await self.supabase.update_user_social_points(telegram_id, points)
             return result is not None
 
         except Exception as e:
@@ -207,7 +207,7 @@ class UserService:
             int: The number of social points, or None if user not found
         """
         try:
-            user = await self._client.fetch_user_by_telegram_id(telegram_id)
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
             if not user:
                 return None
             return user.get('social_points', 0)
@@ -225,13 +225,13 @@ class UserService:
         """
         try:
             # Получаем пользователя по Telegram ID
-            user = await self._client.fetch_user_by_telegram_id(telegram_id)
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
             if not user:
                 logger.error(f"User not found: {telegram_id}")
                 return False
             user_uuid = user['id']
             # Обновляем количество бесплатных запросов
-            result = self._client.update_user_free_requests(user_uuid, 1)
+            result = self.supabase.update_user_free_requests(user_uuid, 1)
             return result is not None
         except Exception as e:
             logger.error(f"Error adding free request: {e}")
@@ -245,7 +245,7 @@ class UserService:
             bool: True if reset was successful, False otherwise
         """
         try:
-            result = await self._client.reset_all_users_free_requests()
+            result = await self.supabase.reset_all_users_free_requests()
             return bool(result)
         except Exception as e:
             logger.error(f"Error resetting free requests: {e}")
@@ -266,15 +266,15 @@ class UserService:
         """
         try:
             # Check for direct connection
-            connections = await self._client.fetch_connections(user1_id)
+            connections = await self.supabase.fetch_connections(user1_id)
             for conn in connections:
                 if (conn['user1_id'] == user1_id and conn['user2_id'] == user2_id) or \
                    (conn['user1_id'] == user2_id and conn['user2_id'] == user1_id):
                     return "direct"
 
             # Check for indirect connection
-            user1_connections = await self._client.fetch_connections(user1_id)
-            user2_connections = await self._client.fetch_connections(user2_id)
+            user1_connections = await self.supabase.fetch_connections(user1_id)
+            user2_connections = await self.supabase.fetch_connections(user2_id)
             
             # Get sets of connected user IDs
             user1_connected_ids = {conn['user2_id'] if conn['user1_id'] == user1_id else conn['user1_id'] 
@@ -310,13 +310,13 @@ class UserService:
         """
         try:
             # Get connections for both users
-            connections = await self._client.fetch_connections(user1_id, user2_id)
+            connections = await self.supabase.fetch_connections(user1_id, user2_id)
             if not connections:
                 return None
 
             # Find common connection
             common_id = connections[0]['id']
-            user_details = await self._client.fetch_user_details(common_id)
+            user_details = await self.supabase.fetch_user_details(common_id)
 
             if user_details:
                 return user_details
@@ -327,5 +327,43 @@ class UserService:
             logger.error(f"Error getting common connection: {e}")
             return None
 
+    async def deactivate_inactive_users(self, days_inactive_threshold: int = 30) -> int:
+        """Deactivate users who haven't been active for the specified number of days.
+        
+        Args:
+            days_inactive_threshold: Number of days of inactivity before deactivation
+            
+        Returns:
+            int: Number of users deactivated
+        """
+        try:
+            # Calculate the cutoff date
+            cutoff_date = datetime.utcnow() - timedelta(days=days_inactive_threshold)
+            
+            # Find inactive users
+            response = await self.supabase.table('users').select('id, telegram_id, name').lt('last_active_at', cutoff_date.isoformat()).eq('is_active_in_search', True).execute()
+            
+            inactive_users = response.data
+            if not inactive_users:
+                logger.info("No inactive users found")
+                return 0
+                
+            # Deactivate users
+            deactivated_count = 0
+            for user in inactive_users:
+                try:
+                    await self.supabase.table('users').update({'is_active_in_search': False}).eq('id', user['id']).execute()
+                    deactivated_count += 1
+                    logger.info(f"Deactivated user {user['name']} (ID: {user['telegram_id']}) due to inactivity")
+                except Exception as e:
+                    logger.error(f"Error deactivating user {user['id']}: {e}")
+                    
+            logger.info(f"Deactivated {deactivated_count} inactive users")
+            return deactivated_count
+            
+        except Exception as e:
+            logger.error(f"Error in deactivate_inactive_users: {e}")
+            return 0
+
 # Create singleton instance
-user_service = UserService() 
+user_service = UserService(supabase_client) 

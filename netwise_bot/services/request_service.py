@@ -12,12 +12,14 @@ from netwise_bot.utils.constants import (
     REQUEST_STATUS_CLOSED,
     REQUEST_STATUS_EXPIRED
 )
+from netwise_bot.services.matching_service import MatchingService
 
 logger = logging.getLogger(__name__)
 
 class RequestService:
-    def __init__(self, supabase_client: SupabaseClient):
+    def __init__(self, supabase_client: SupabaseClient, matching_service: MatchingService):
         self.supabase = supabase_client
+        self.matching_service = matching_service
 
     async def create_request(self, requester_id: int, description: str) -> Tuple[bool, str, Optional[str]]:
         """
@@ -228,5 +230,55 @@ class RequestService:
             logger.error(f"Error getting last request for user {telegram_id}: {e}")
             return None
 
+    async def get_requests_user_can_help_with(self, telegram_id: int, limit: int = 20) -> List[Dict[str, Any]]:
+        """Get a list of requests that a user can help with based on their skills and connections.
+        
+        Args:
+            telegram_id: The user's Telegram ID
+            limit: Maximum number of requests to return
+            
+        Returns:
+            List[Dict[str, Any]]: List of relevant requests
+        """
+        try:
+            # Get open requests not from this user
+            response = await self.supabase.table('requests').select('*').eq('status', 'open').neq('requester_id', telegram_id).execute()
+            open_requests = response.data
+
+            if not open_requests:
+                return []
+
+            # Get user's profile for matching
+            user_profile = await self.supabase.table('users').select('*').eq('telegram_id', telegram_id).single().execute()
+            if not user_profile.data:
+                logger.error(f"Could not find user profile for {telegram_id}")
+                return []
+
+            # Score and filter requests
+            scored_requests = []
+            for request in open_requests:
+                # Skip requests older than 7 days
+                if datetime.fromisoformat(request['created_at']) < datetime.now() - timedelta(days=7):
+                    continue
+
+                # Get match score
+                score = await self.matching_service.calculate_match_score(
+                    request['description_text'],
+                    user_profile.data
+                )
+
+                if score > 0:  # Only include requests with some relevance
+                    request['match_score'] = score
+                    scored_requests.append(request)
+
+            # Sort by match score and created_at
+            scored_requests.sort(key=lambda x: (x['match_score'], x['created_at']), reverse=True)
+
+            return scored_requests[:limit]
+
+        except Exception as e:
+            logger.error(f"Error getting requests for user {telegram_id}: {e}")
+            return []
+
 # Create singleton instance
-request_service = RequestService(supabase_client) 
+request_service = RequestService(supabase_client, MatchingService()) 

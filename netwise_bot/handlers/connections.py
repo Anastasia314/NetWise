@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
-from ..services.user_service import UserService
+from netwise_bot.services.user_service import user_service
 from ..services.connection_service import ConnectionService
 from ..config import get_bot_username
 from ..services.graph_service import GraphService
@@ -19,7 +19,6 @@ router = Router()
 
 # Initialize services
 supabase_client = SupabaseClient()
-user_service = UserService()
 connection_service = ConnectionService()
 graph_service = GraphService(supabase_client)
 

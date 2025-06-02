@@ -2,16 +2,14 @@ from aiogram import Router, types, F
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from ..services.user_service import UserService
+from netwise_bot.services.user_service import user_service
+from netwise_bot.services.notification_service import NotificationService
 from ..keyboards.profile_keyboards import get_profile_confirmation_keyboard, get_profile_cancel_keyboard, get_profile_edit_keyboard, get_search_settings_keyboard
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 
 # Create router for profile handlers
 router = Router()
-
-# Initialize UserService
-user_service = UserService()
 
 # Get logger
 logger = logging.getLogger(__name__)

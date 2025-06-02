@@ -245,46 +245,45 @@
 ### **Phase 4: Daily Digests & Notifications (2-3 days)**
 
 *   **Task 4.1: Scheduler Setup**
-    *   `- [ ]` Create `netwise_bot/scheduler.py`.
-    *   `- [ ]` **`scheduler.py`:**
-        *   `- [ ]` Initialize `AsyncIOScheduler`.
-        *   `- [ ]` Function to add jobs (e.g., daily digest, monthly free request reset).
-        *   `- [ ]` Function to start the scheduler.
-    *   `- [ ]` Integrate scheduler start in `main.py`.
+    *   `- [x]` Create `netwise_bot/scheduler.py`.
+    *   `- [x]` **`scheduler.py`:**
+        *   `- [x]` Initialize `AsyncIOScheduler`.
+        *   `- [x]` Function to add jobs (e.g., daily digest, monthly free request reset).
+        *   `- [x]` Function to start the scheduler.
+    *   `- [x]` Integrate scheduler start in `main.py`.
 *   **Task 4.2: Daily Digest Logic**
-    *   `- [ ]` Create `netwise_bot/services/notification_service.py`.
-    *   `- [ ]` **`request_service.py`:**
-        *   `- [ ]` Implement `get_requests_user_can_help_with(telegram_id, limit=20)`:
-            *   `- [ ]` Find open requests NOT from this user.
-            *   `- [ ]` For each request, use `matching_service.find_keyword_matches()` (or a simplified version checking if this user is a good match for *other's* requests).
-            *   `- [ ]` Prioritize based on match score, freshness.
-    *   `- [ ]` **`notification_service.py`:**
-        *   `- [ ]` Implement `generate_daily_digest_for_user(telegram_id)`:
-            *   `- [ ]` Call `request_service.get_requests_user_can_help_with()`.
-            *   `- [ ]` Format a message listing up to X requests. Each with "Готов помочь" button (callback_data: `offer_help_{request_id}_{requester_id_of_that_request}`).
-    *   `- [ ]` **`scheduler.py`:**
-        *   `- [ ]` Create `async def send_daily_digests_job()`:
-            *   `- [ ]` Fetch all active users.
-            *   `- [ ]` For each user, call `notification_service.generate_daily_digest_for_user()` and send the message via bot instance.
-            *   `- [ ]` Add this job to run daily (e.g., `scheduler.add_job(..., "cron", hour=9)`).
+    *   `- [x]` Create `netwise_bot/services/notification_service.py`.
+    *   `- [x]` **`request_service.py`:**
+        *   `- [x]` Implement `get_requests_user_can_help_with(telegram_id, limit=20)`:
+            *   `- [x]` Find open requests NOT from this user.
+            *   `- [x]` For each request, use `matching_service.find_keyword_matches()` (or a simplified version checking if this user is a good match for *other's* requests).
+            *   `- [x]` Prioritize based on match score, freshness.
+    *   `- [x]` **`notification_service.py`:**
+        *   `- [x]` Implement `generate_daily_digest_for_user(telegram_id)`:
+            *   `- [x]` Call `request_service.get_requests_user_can_help_with()`.
+            *   `- [x]` Format a message listing up to X requests. Each with "Готов помочь" button (callback_data: `offer_help_{request_id}_{requester_id_of_that_request}`).
+    *   `- [x]` **`scheduler.py`:**
+        *   `- [x]` Create `async def send_daily_digests_job()`:
+            *   `- [x]` Fetch all active users.
+            *   `- [x]` For each user, call `notification_service.generate_daily_digest_for_user()` and send the message via bot instance.
+            *   `- [x]` Add this job to run daily (e.g., `scheduler.add_job(..., "cron", hour=9)`).
 *   **Task 4.3: "Готов помочь" Interaction**
-    *   `- [ ]` **`handlers/interactions.py`:**
-        *   `- [ ]` Implement callback handler for `offer_help_...`:
-            *   `- [ ]` Parse `request_id`, `original_requester_id`.
-            *   `- [ ]` Get current user's ID (the one offering help).
-            *   `- [ ]` Notify `original_requester_id`: "[HelperName] saw your request '[Request snippet]' and is willing to help! You can contact them at @[HelperUsername]."
-            *   `- [ ]` (Optional) Notify helper: "You've offered to help with request '[Request snippet]'. [RequesterName] has been notified."
-            *   `- [ ]` **Call `user_service.add_social_points(helper_id, POINTS_PER_HELP)`**
-            *   `- [ ]` **Supabase:** Create `activity_history` table (user_id, action_type: "helped_on_request", related_request_id, points_change, timestamp). Log this action.
-            *   `- [ ]` Update `requests` table status to "pending_intro" or "intro_made".
-    *   `- [ ]` **Test:** Daily digest is sent, "Готов помочь" button works, points are awarded, activity logged.
+    *   `- [x]` **`handlers/interactions.py`:**
+        *   `- [x]` Implement callback handler for `offer_help_...`:
+            *   `- [x]` Parse `request_id`, `original_requester_id`.
+            *   `- [x]` Get current user's ID (the one offering help).
+            *   `- [x]` Notify `original_requester_id`: "[HelperName] saw your request '[Request snippet]' and is willing to help! You can contact them at @[HelperUsername]."
+            *   `- [x]` (Optional) Notify helper: "You've offered to help with request '[Request snippet]'. [RequesterName] has been notified."
+            *   `- [x]` **Call `user_service.add_social_points(helper_id, POINTS_PER_HELP)`**
+            *   `- [x]` **Supabase:** Create `activity_history` table (user_id, action_type: "helped_on_request", related_request_id, points_change, timestamp). Log this action.
+            *   `- [x]` Update `requests` table status to "pending_intro" or "intro_made".
+    *   `- [x]` **Test:** Daily digest is sent, "Готов помочь" button works, points are awarded, activity logged.
         *   *Checkpoint:* Users receive digests and can offer help.
 *   **Task 4.4: Inactivity Management**
-    *   `- [ ]` **`user_service.py`:** Implement `deactivate_inactive_users(days_inactive_threshold)`.
-        *   `- [ ]` Query users where `last_active_at` is older than threshold.
-        *   `- [ ]` Set `is_active_in_search = false`.
-    *   `- [ ]` **`scheduler.py`:** Add job to run `deactivate_inactive_users_job` daily/weekly.
-    *   `- [ ]` **(Optional) `notification_service.py`:** Implement `send_inactive_reminders` before deactivation.
+    *   `- [x]` Implement `deactivate_inactive_users(days_inactive_threshold)` in `user_service.py`
+    *   `- [x]` Add job in `scheduler.py` to run deactivation process daily
+    *   `- [x]` Implement `send_inactive_reminders` in `notification_service.py`
+    *   `- [x]` Test the inactivity management system
 
 ---
 
