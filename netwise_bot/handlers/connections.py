@@ -9,7 +9,7 @@ from ..services.graph_service import GraphService
 from ..services.supabase_client import SupabaseClient
 from ..states.connection_states import ConnectionTrustStates
 from ..keyboards.connections_keyboards import get_connection_type_keyboard, get_trust_score_keyboard, get_connection_list_keyboard, get_connection_stats_keyboard
-from ..keyboards.main_menu import get_menu_button, get_profile_menu_keyboard
+from ..keyboards.main_menu import get_profile_menu_keyboard
 from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_settings_keyboard
 import logging
 from typing import Dict, Any
@@ -78,7 +78,7 @@ async def handle_deep_link(message: Message, state: FSMContext):
     
     try:
         # Сначала отправляем приветствие
-        await message.answer("👋 Welcome to NetWise!", reply_markup=get_menu_button())
+        await message.answer("👋 Welcome to NetWise!")
         
         # Extract inviter ID from deep link
         parts = message.text.split(maxsplit=1)

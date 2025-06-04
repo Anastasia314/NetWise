@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from supabase import create_client, Client
 from ..config import get_supabase_url, get_supabase_key
 from uuid import UUID
-from netwise_bot.utils.constants import FREE_REQUESTS_PER_MONTH
+from netwise_bot.utils.constants import FREE_REQUESTS_PER_MONTH, REQUEST_STATUS_CLOSED
 
 class SupabaseClient:
     _instance = None
@@ -286,32 +286,43 @@ class SupabaseClient:
             print(f"Error creating request record: {str(e)}")
             raise
 
-    def fetch_user_requests(
+    async def fetch_user_requests(
         self,
-        requester_id: int,
+        user_id: Optional[str] = None,
         status: Optional[str] = None,
         limit: int = 10,
-        offset: int = 0
+        offset: int = 0,
+        sort_by: str = "created_at",
+        request_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Fetch requests for a specific user.
-        Args:
-            requester_id: Telegram ID of the user
-            status: Optional filter by request status
-            limit: Maximum number of requests to return
-            offset: Number of requests to skip
-        Returns:
-            List of request records
-        """
+        """Fetch user requests with pagination and filtering."""
         try:
-            query = self._client.table("requests").select("*").eq("requester_id", requester_id)
+            # Create query
+            query = self._client.table("requests").select(
+                "id, description_text, status, created_at, updated_at, expires_at"
+            )
+            
+            # Apply filters
+            if user_id:
+                query = query.eq("requester_id", user_id)
             if status:
                 query = query.eq("status", status)
-            result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
-            return result.data
+            if request_id:
+                query = query.eq("id", request_id)
+                
+            # Apply sorting
+            query = query.order(sort_by, desc=True)
+            
+            # Apply pagination
+            query = query.range(offset, offset + limit - 1)
+            
+            # Execute query
+            response = query.execute()
+            return response.data if response else []
+            
         except Exception as e:
-            print(f"Error fetching user requests: {str(e)}")
-            raise
+            print(f"Error fetching user requests: {e}")
+            return []
 
     async def fetch_request(self, request_id: UUID) -> Optional[Dict[str, Any]]:
         """
@@ -346,19 +357,27 @@ class SupabaseClient:
             print(f"Error updating request status: {str(e)}")
             raise
 
-    async def delete_request(self, request_id: UUID) -> None:
+    async def delete_request(self, request_id: str) -> bool:
         """
-        Delete a request.
+        Soft delete a request by updating its status.
         
         Args:
-            request_id: UUID of the request to delete
+            request_id: ID of the request to delete
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
         """
         try:
-            await self._client.table("requests").delete().eq("id", str(request_id)).execute()
+            result = self._client.table("requests").update({
+                "status": REQUEST_STATUS_CLOSED,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("id", request_id).execute()
+            
+            return bool(result.data)
             
         except Exception as e:
-            print(f"Error deleting request: {str(e)}")
-            raise
+            print(f"Error deleting request: {e}")
+            return False
 
     async def update_user_social_points(self, telegram_id: int, points_change: int) -> Optional[Dict[str, Any]]:
         """
@@ -529,6 +548,38 @@ class SupabaseClient:
             
         except Exception as e:
             print(f"Error updating request match status: {e}")
+            return None
+
+    async def fetch_request_matches(self, request_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch all matches for a request.
+        
+        Args:
+            request_id: ID of the request
+            
+        Returns:
+            List of match data
+        """
+        try:
+            response = self._client.table('request_matches_log').select(
+                '*'
+            ).eq('request_id', request_id).execute()
+            return response.data
+        except Exception as e:
+            print(f"Error fetching request matches: {e}")
+            return []
+
+    def table(self, table_name: str):
+        """Get a reference to a table."""
+        return self._client.table(table_name)
+
+    async def update_request_record(self, request_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update a request record."""
+        try:
+            result = self.table("requests").update(data).eq("id", request_id).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Error updating request record: {e}")
             return None
 
 # Create singleton instance

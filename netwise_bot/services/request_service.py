@@ -79,86 +79,185 @@ class RequestService:
 
     async def get_user_requests(
         self,
-        user_id: int,
-        status: Optional[str] = None
-    ) -> List[Dict]:
-        """
-        Get all requests for a user.
-        
-        Args:
-            user_id: The Telegram ID of the user
-            status: Optional status filter
-            
-        Returns:
-            List of request data
-        """
+        telegram_id: int,
+        page: int = 1,
+        per_page: int = 5,
+        status: Optional[str] = None,
+        sort_by: str = "created_at"
+    ) -> Dict[str, Any]:
+        """Get user requests with pagination and filtering."""
         try:
-            # Получаем пользователя по Telegram ID
-            user = await self.supabase.fetch_user_by_telegram_id(user_id)
+            # Get user
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
             if not user:
-                logger.error(f"User not found: {user_id}")
-                return []
-            user_uuid = user['id']
-            return self.supabase.fetch_user_requests(user_uuid, status)
-        except Exception as e:
-            logger.error(f"Error fetching requests for user {user_id}: {e}")
-            return []
-
-    async def get_request(self, request_id: str) -> Optional[Dict]:
-        """
-        Get request details by ID.
-        
-        Args:
-            request_id: The request ID
+                return {"requests": [], "page": 1, "total_pages": 1}
             
-        Returns:
-            Request data or None if not found
-        """
-        try:
-            return await self.supabase.fetch_request(request_id)
+            # Calculate offset
+            offset = (page - 1) * per_page
+            
+            # Fetch requests with pagination and filtering
+            requests = await self.supabase.fetch_user_requests(
+                user_id=user["id"],
+                status=status,
+                limit=per_page,
+                offset=offset,
+                sort_by=sort_by
+            )
+            
+            # Get total count for pagination
+            all_requests = await self.supabase.fetch_user_requests(
+                user_id=user["id"],
+                status=status
+            )
+            total_count = len(all_requests) if all_requests else 0
+            
+            # Calculate total pages
+            total_pages = (total_count + per_page - 1) // per_page
+            
+            # Get helper and offer counts for each request
+            for req in requests:
+                matches = await self.supabase.fetch_request_matches(req["id"])
+                req["helpers_count"] = len([m for m in matches if m["status"] == "accepted"])
+                req["offers_count"] = len([m for m in matches if m["status"] == "pending"])
+                
+                # Convert string dates to datetime objects if needed
+                for date_field in ["created_at", "updated_at", "expires_at"]:
+                    if date_field in req and isinstance(req[date_field], str):
+                        req[date_field] = datetime.fromisoformat(req[date_field].replace('Z', '+00:00'))
+            
+            return {
+                "requests": requests,
+                "page": page,
+                "total_pages": total_pages
+            }
+            
         except Exception as e:
-            logger.error(f"Error fetching request {request_id}: {e}")
+            logger.error(f"Error fetching user requests: {e}")
+            return {"requests": [], "page": 1, "total_pages": 1}
+
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single request by ID."""
+        try:
+            # Use fetch_user_requests with a filter for the specific request
+            response = await self.supabase.fetch_user_requests(
+                user_id=None,  # We don't filter by user here
+                request_id=request_id
+            )
+            
+            if response and len(response) > 0:
+                request = response[0]
+                
+                # Get helper and offer counts
+                matches = await self.supabase.fetch_request_matches(request_id)
+                request["helpers_count"] = len([m for m in matches if m["status"] == "accepted"])
+                request["offers_count"] = len(matches)
+                
+                return request
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting request: {e}")
             return None
 
-    async def update_request_status(
+    async def update_request(
         self,
         request_id: str,
-        status: str
+        description: str
     ) -> bool:
-        """
-        Update request status.
-        
-        Args:
-            request_id: The request ID
-            status: New status
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Update request description."""
         try:
-            return await self.supabase.update_request_status(request_id, status)
+            # Use the update_request_record method
+            result = await self.supabase.update_request_record(
+                request_id=request_id,
+                data={
+                    "description_text": description,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+            )
+            return bool(result)
+
         except Exception as e:
-            logger.error(f"Error updating request {request_id} status: {e}")
+            logger.error(f"Error updating request: {e}")
             return False
 
-    async def delete_request(self, request_id: UUID) -> bool:
-        """
-        Delete a request.
-        
-        Args:
-            request_id: UUID of the request to delete
-            
-        Returns:
-            True if deletion was successful, False otherwise
-        """
+    async def delete_request(self, request_id: str) -> bool:
+        """Soft delete request by updating status."""
         try:
-            await self.supabase.delete_request(request_id)
-            logger.info(f"Deleted request {request_id}")
-            return True
-            
+            # Use the update_request_record method with the correct status
+            result = await self.supabase.update_request_record(
+                request_id=request_id,
+                data={
+                    "status": REQUEST_STATUS_CLOSED,  # Use the constant instead of "deleted"
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+            )
+            return bool(result)
+
         except Exception as e:
-            logger.error(f"Error deleting request {request_id}: {str(e)}")
+            logger.error(f"Error deleting request: {e}")
             return False
+
+    async def get_user_request_stats(self, telegram_id: int) -> Dict[str, Any]:
+        """Get request statistics for user."""
+        try:
+            # Get user ID
+            user = await self.supabase.fetch_user_by_telegram_id(telegram_id)
+            if not user:
+                return {
+                    "total_requests": 0,
+                    "open_requests": 0,
+                    "pending_requests": 0,
+                    "active_requests": 0,
+                    "avg_response_time": 0,
+                    "success_rate": 0
+                }
+
+            # Get all requests
+            result = await self.supabase.table("requests").select(
+                "id, status, created_at, updated_at"
+            ).eq("requester_id", user["id"]).execute()
+
+            requests = result.data if result else []
+            
+            # Calculate statistics
+            total_requests = len(requests)
+            open_requests = len([r for r in requests if r["status"] == "open"])
+            pending_requests = len([r for r in requests if r["status"] == "pending_intro"])
+            active_requests = len([r for r in requests if r["status"] in ["intro_made", "active"]])
+
+            # Calculate average response time
+            response_times = []
+            for req in requests:
+                if req["status"] in ["intro_made", "active"]:
+                    created = datetime.fromisoformat(req["created_at"])
+                    updated = datetime.fromisoformat(req["updated_at"])
+                    response_times.append((updated - created).total_seconds() / 3600)  # Convert to hours
+
+            avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+
+            # Calculate success rate
+            successful_requests = len([r for r in requests if r["status"] in ["intro_made", "active"]])
+            success_rate = (successful_requests / total_requests * 100) if total_requests else 0
+
+            return {
+                "total_requests": total_requests,
+                "open_requests": open_requests,
+                "pending_requests": pending_requests,
+                "active_requests": active_requests,
+                "avg_response_time": round(avg_response_time, 1),
+                "success_rate": round(success_rate, 1)
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting request stats: {e}")
+            return {
+                "total_requests": 0,
+                "open_requests": 0,
+                "pending_requests": 0,
+                "active_requests": 0,
+                "avg_response_time": 0,
+                "success_rate": 0
+            }
 
     async def validate_request_description(self, description: str) -> tuple[bool, str]:
         """

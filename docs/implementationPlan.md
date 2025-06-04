@@ -240,6 +240,45 @@
         *   `- [x]` Test error cases and edge conditions
         *   `- [x]` Verify proper logging and state management
 
+*   **Task 3.6: Request Management System**
+    *   `- [ ]` Create `/myrequests` command in `handlers/requests.py`
+        *   `- [ ]` Implement pagination for request list (10 requests per page)
+        *   `- [ ]` Add filtering by request status (open, pending_intro, intro_made, closed, expired)
+        *   `- [ ]` Add sorting by creation date and status
+        *   `- [ ]` Display request details including:
+            *   `- [ ]` Request description
+            *   `- [ ]` Creation date
+            *   `- [ ]` Status
+            *   `- [ ]` Number of potential helpers found
+            *   `- [ ]` Number of help offers received
+    *   `- [ ]` Create request management keyboards in `keyboards/request_keyboards.py`
+        *   `- [ ]` Add keyboard for request list actions (edit, delete, refresh)
+        *   `- [ ]` Add keyboard for request details view
+        *   `- [ ]` Add keyboard for request editing
+        *   `- [ ]` Add keyboard for request deletion confirmation
+    *   `- [ ]` Implement request editing functionality
+        *   `- [ ]` Add FSM states for request editing in `states/request_states.py`
+        *   `- [ ]` Implement edit request handler
+        *   `- [ ]` Add validation for edited request text
+        *   `- [ ]` Update request in database
+        *   `- [ ]` Notify helpers about request update
+    *   `- [ ]` Implement request deletion functionality
+        *   `- [ ]` Add confirmation step before deletion
+        *   `- [ ]` Implement soft delete (update status to 'deleted')
+        *   `- [ ]` Notify helpers about request deletion
+        *   `- [ ]` Update request matches log
+    *   `- [ ]` Add request statistics
+        *   `- [ ]` Show total number of requests
+        *   `- [ ]` Show requests by status
+        *   `- [ ]` Show average response time
+        *   `- [ ]` Show success rate (requests with help offers)
+    *   `- [ ]` Test request management system
+        *   `- [ ]` Test request listing and pagination
+        *   `- [ ]` Test request editing flow
+        *   `- [ ]` Test request deletion flow
+        *   `- [ ]` Test error handling and edge cases
+        *   `- [ ]` Verify proper notifications to helpers
+
 ---
 
 ### **Phase 4: Daily Digests & Notifications (2-3 days)**

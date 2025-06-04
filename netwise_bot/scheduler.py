@@ -1,6 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
 import logging
 from typing import Optional
 
@@ -14,7 +13,6 @@ class SchedulerManager:
         """Initialize the AsyncIOScheduler instance."""
         if self.scheduler is None:
             self.scheduler = AsyncIOScheduler()
-            logger.info("Scheduler initialized")
 
     def start(self) -> None:
         """Start the scheduler."""
@@ -23,13 +21,11 @@ class SchedulerManager:
         
         if not self.scheduler.running:
             self.scheduler.start()
-            logger.info("Scheduler started")
 
     def shutdown(self) -> None:
         """Shutdown the scheduler gracefully."""
         if self.scheduler and self.scheduler.running:
             self.scheduler.shutdown()
-            logger.info("Scheduler shut down")
 
     def add_job(self, func, trigger: str, **trigger_args) -> None:
         """Add a job to the scheduler.

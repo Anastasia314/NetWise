@@ -6,11 +6,10 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-from netwise_bot.config import LOG_LEVEL, TELEGRAM_BOT_TOKEN, load_config
+from netwise_bot.config import LOG_LEVEL, load_config
 from netwise_bot.handlers import common, profile, connections, requests, interactions
 from netwise_bot.middleware.activity_middleware import ActivityMiddleware
 from netwise_bot.services.user_service import user_service
@@ -54,7 +53,6 @@ async def manage_inactive_users():
 async def main():
     """Main function to start the bot"""
     try:
-        logger.info("Initializing bot...")
         # Load configuration
         config = load_config()
         
@@ -65,34 +63,25 @@ async def main():
         )
         storage = MemoryStorage()
         dp = Dispatcher(storage=storage)
-        logger.info("Bot and dispatcher initialized")
         
         # Initialize services
-        logger.info("Initializing services...")
         supabase_client = SupabaseClient()
         graph_service = GraphService(supabase_client)
-        logger.info("Services initialized")
         
         # Register middleware
-        logger.info("Registering middleware...")
         dp.update.middleware(ActivityMiddleware(user_service))
-        logger.info("Middleware registered")
         
         # Register routers with dependencies
-        logger.info("Registering routers...")
         dp.include_router(connections.router)
         dp.include_router(profile.router)
         dp.include_router(common.router)
         dp.include_router(requests.router)
         dp.include_router(interactions.router)
-        logger.info("Routers registered")
         
         # Set up dependency injection
-        logger.info("Setting up dependency injection...")
         dp["user_service"] = user_service
         dp["graph_service"] = graph_service
         dp["matching_service"] = matching_service
-        logger.info("Dependency injection set up")
         
         # Create notification_service instance
         global notification_service
@@ -105,7 +94,6 @@ async def main():
         scheduler_manager.start()
         
         # Start polling
-        logger.info("Starting bot polling...")
         await dp.start_polling(bot)
         
     except Exception as e:
