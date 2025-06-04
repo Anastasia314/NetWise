@@ -9,7 +9,7 @@ from ..keyboards.common_keyboards import get_initial_setup_keyboard, get_search_
 from ..states.profile_states import ProfileStates
 from ..handlers.profile import show_profile
 from ..handlers.requests import cmd_newrequest
-from ..keyboards.main_menu import get_main_menu_keyboard, get_profile_menu_keyboard, get_main_menu_inline_keyboard, get_menu_button
+from ..keyboards.main_menu import get_main_menu_keyboard, get_profile_menu_keyboard, get_main_menu_inline_keyboard
 from ..states.request_states import RequestStates
 
 # Create router for common handlers
@@ -53,7 +53,7 @@ async def handle_start(
         logger.info(f"User profile status: {'exists' if profile else 'not found'}")
         
         # Send welcome message
-        await message.answer("👋 Welcome to NetWise!", reply_markup=get_menu_button())
+        await message.answer("👋 Welcome to NetWise!")
         
         if not profile or not all(key in profile for key in ['role', 'industry', 'skills', 'goals', 'interests']):
             # New user without complete profile

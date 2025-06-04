@@ -28,11 +28,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global notification service instance
+notification_service = None
+
 async def send_daily_digests():
     """Send daily digests to all active users."""
     try:
         # Get all active users
-        response = await user_service.supabase.table('users').select('telegram_id').eq('is_active_in_search', True).execute()
+        response = await user_service.supabase._client.table('users').select('telegram_id').eq('is_active_in_search', True).execute()
         users = response.data
         
         for user in users:
@@ -42,16 +45,9 @@ async def send_daily_digests():
         logger.error(f"Error sending daily digests: {e}")
 
 async def manage_inactive_users():
-    """Manage inactive users by sending reminders and deactivating them."""
+    """Manage inactive users by sending reminders and deactivating them if necessary."""
     try:
-        # Send reminders to users approaching inactivity
         await notification_service.send_inactive_reminders()
-        
-        # Deactivate users who have been inactive for too long
-        deactivated_count = await user_service.deactivate_inactive_users()
-        if deactivated_count > 0:
-            logger.info(f"Deactivated {deactivated_count} inactive users")
-            
     except Exception as e:
         logger.error(f"Error managing inactive users: {e}")
 
@@ -98,32 +94,23 @@ async def main():
         dp["matching_service"] = matching_service
         logger.info("Dependency injection set up")
         
+        # Create notification_service instance
+        global notification_service
+        notification_service = NotificationService(bot, request_service, user_service)
+        
         # Initialize and start scheduler
         scheduler_manager.init_scheduler()
         scheduler_manager.add_daily_job(send_daily_digests, hour=9, minute=0)
         scheduler_manager.add_daily_job(manage_inactive_users, hour=0, minute=0)
         scheduler_manager.start()
         
-        # Create notification_service instance
-        notification_service = NotificationService(bot, request_service, user_service)
-        dp["notification_service"] = notification_service
-        
-        logger.info("Starting NetWise bot...")
-        
         # Start polling
+        logger.info("Starting bot polling...")
         await dp.start_polling(bot)
         
     except Exception as e:
-        logger.error(f"Error starting bot: {e}", exc_info=True)
+        logger.error(f"Error in main: {e}")
         raise
-    finally:
-        # Shutdown scheduler
-        scheduler_manager.shutdown()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Bot stopped due to error: {e}", exc_info=True) 
+    asyncio.run(main()) 

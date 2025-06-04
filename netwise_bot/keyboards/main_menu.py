@@ -1,16 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
-def get_menu_button():
-    """Create a persistent menu button in the bottom panel."""
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🏠 Menu")]],
-        resize_keyboard=True,
-        one_time_keyboard=False,
-        is_persistent=True
-    )
-
 def get_main_menu_keyboard():
-    """Create the main menu keyboard with menu button."""
+    """Create the main menu keyboard."""
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="My Profile")],
