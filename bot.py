@@ -26,10 +26,10 @@ async def main():
     )
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
-    
+
     # Register all handlers
     register_all_handlers(dp)
-    
+
     try:
         # Start polling
         logger.info(f"Starting {settings.APP_NAME}...")
@@ -44,4 +44,4 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped!")
     except Exception as e:
-        logger.error(f"Error running bot: {e}") 
+        logger.error(f"Error running bot: {e}")

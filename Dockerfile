@@ -28,4 +28,4 @@ RUN useradd -m -u 1000 appuser
 USER appuser
 
 # Command to run the application
-CMD ["python", "app/bot.py"] 
+CMD ["python", "bot.py"] 
