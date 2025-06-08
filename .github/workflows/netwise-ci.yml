@@ -5,13 +5,11 @@ on:
     branches: [ chat-MVP-main ]
     paths:
       - 'app/**'
-      - 'bot.py'
       - 'requirements.txt'
   pull_request:
     branches: [ chat-MVP-main ]
     paths:
       - 'app/**'
-      - 'bot.py'
       - 'requirements.txt'
 
 jobs:
