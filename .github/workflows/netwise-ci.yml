@@ -1,17 +1,17 @@
-name: NetWise CI
+name: Chat Bot CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ chat-MVP-main ]
     paths:
-      - 'netwise_bot/**'
-      - 'main.py'
+      - 'app/**'
+      - 'bot.py'
       - 'requirements.txt'
   pull_request:
-    branches: [ main ]
+    branches: [ chat-MVP-main ]
     paths:
-      - 'netwise_bot/**'
-      - 'main.py'
+      - 'app/**'
+      - 'bot.py'
       - 'requirements.txt'
 
 jobs:

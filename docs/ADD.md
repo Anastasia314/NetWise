@@ -1,268 +1,150 @@
-# **Architectural Design Document (ADD)**
+# Architectural Design Document (ADD): Telegram Networking Bot
 
-**Product Name:** NetWise
-**Owner:** Anastasia314
-**Date:** 2025-05-28
+| **Version** | **Дата**   | **Автор** | **Изменения**                               |
+| :---------- | :--------- | :-------- | :------------------------------------------ |
+| 1.0         | 22.05.2024 | Anastasia314 | Первоначальная версия документа             |
 
-**Version:** 1.0 (MVP - Simplified Telegram Bot Focus)
-
----
-
-## 1. **Introduction**
+## 1. Introduction
 
 ### 1.1. Purpose
-This document outlines the architectural design for the NetWise Minimum Viable Product (MVP), an intelligent networking assistant delivered as a Telegram bot. It details the bot's internal structure, its interaction with the data store (Supabase), AI matching logic, technology stack, and deployment strategy. The architecture prioritizes simplicity and rapid development for the initial launch.
+This document provides a comprehensive architectural overview of the Telegram Networking Bot. It details the system components, their interactions, the data model, the technology stack, and deployment strategies. This ADD is a technical guide for the development team, based on the functional and non-functional requirements outlined in the **PRD v1.1**.
 
 ### 1.2. Scope
-The scope of this document covers the MVP features of NetWise, implemented entirely within the Telegram Bot application:
-*   Telegram Bot interface for user interaction.
-*   User profile creation and management.
-*   Friend invitation system and personal connection graph (1st and 2nd degree).
-*   Request formulation and AI-powered matching.
-*   Daily request digests.
-*   Activity history and "social points" system.
-*   Request economy (free tier, per-request charges, subscriptions).
-*   Trust scoring mechanism.
-*   User activity monitoring and management.
+The scope of this architecture is to design a robust, scalable, and maintainable system for the networking bot's core functionality: user onboarding, profile management, and contact matching based on tags.
 
-Future features like a Telegram Mini App are considered for extensibility but are outside the scope of this initial MVP architecture.
+## 2. Architectural Goals & Constraints
 
-### 1.3. Definitions, Acronyms, and Abbreviations
-*   **PRD:** Product Requirements Document
-*   **ADD:** Architectural Design Document
-*   **MVP:** Minimum Viable Product
-*   **DB:** Database
-*   **AI:** Artificial Intelligence
-*   **CI/CD:** Continuous Integration/Continuous Deployment
-*   **PaaS:** Platform as a Service
-*   **TWA:** Telegram Web App (Mini App - Post-MVP)
+The architecture is designed to meet the following key goals, derived from the PRD's non-functional requirements:
 
----
+*   **Performance:** The system must respond to user interactions within 2 seconds. This requires an efficient application and an optimized database.
+*   **Scalability:** The architecture must handle peak loads, such as the simultaneous onboarding of dozens of users when a conference chat is created. It should be designed to scale horizontally if needed.
+*   **Reliability:** The system must maintain a high uptime (99.5%) during events. This implies a stateless application design and a reliable hosting environment.
+*   **Maintainability:** The codebase should be modular and well-structured to simplify future updates and bug fixes.
+*   **Security:** User data, especially Telegram IDs, must be handled securely. Secrets like API tokens must be stored outside the codebase.
 
-## 2. **Architectural Goals and Constraints**
+## 3. System Architecture
 
-### 2.1. Goals
-*   **Rapid Development & Deployment:** Leverage PaaS for quick MVP launch of the bot.
-*   **Simplicity:** A single, manageable Python application for the Telegram bot.
-*   **Scalability (User Base):** Design for growth in users and data within the Supabase and bot infrastructure.
-*   **Maintainability:** Clean, modular code within the bot application for easy updates and bug fixes.
-*   **Cost-Effectiveness:** Optimize for low operational costs (target ~$100/month for 1000 users).
-*   **User Experience:** Prioritize responsiveness and ease of use within the Telegram bot interface.
-*   **Data Integrity & Security:** Ensure user data is handled securely via Supabase and relationships are accurately represented.
+A C4 model's "Component" level view is appropriate here. The system consists of three main components: The Telegram Bot API, the Bot Application (our backend), and the Database.
 
-### 2.2. Constraints
-*   **Sole Platform:** Telegram Bot is the only interface for MVP.
-*   **Technology Stack:** Adherence to the stack: Python (aiogram) for the bot, Supabase for data, OpenAI for embeddings, Railway for hosting.
-*   **MVP Focus:** Prioritize core features; defer non-essential functionalities.
-*   **Telegram UI Limitations:** Work within the native bot UI limitations.
-*   **AI Dependency:** Reliance on OpenAI for embeddings, subject to their API availability and costs.
+### 3.1. High-Level Diagram (Mermaid)
 
----
+```mermaid
+graph TD
+    subgraph "Telegram Platform"
+        User(👤 User)
+        GroupChat(👥 Group Chat)
+        BotAPI(🤖 Telegram Bot API)
+    end
 
-## 3. **System Overview**
+    subgraph "Our Infrastructure"
+        BotApp(🚀 Bot Application)
+        DB[( Supabase / PostgreSQL DB )]
+    end
 
-NetWise MVP will be a cloud-hosted application consisting of two primary tiers:
+    User -- 1. Joins --> GroupChat
+    GroupChat -- 2. new_chat_member event --> BotAPI
+    BotAPI -- 3. Webhook/Long Polling --> BotApp
 
-1.  **Application Tier:** The Telegram Bot, built with Python (aiogram). This single application handles all user interactions, business logic, AI matching coordination, and direct communication with the data tier.
-2.  **Data Tier:** Supabase (PostgreSQL) for data persistence, user authentication (via Telegram ID), and potentially serverless functions for simple scheduled tasks if not handled by the bot's internal scheduler.
+    User -- 5. Interacts in PM --> BotAPI
+    BotAPI -- 6. Webhook/Long Polling --> BotApp
+    BotApp -- 7. Processes Logic --> BotApp
+    BotApp -- 8. Reads/Writes Profile --> DB
+    BotApp -- 9. Sends Reply --> BotAPI
+    BotAPI -- 10. Delivers Message --> User
 
-**User Interaction Flow (Example: Making a Request):**
-1.  User interacts with the Telegram Bot (e.g., `/new_request` command).
-2.  The Telegram Bot (aiogram Python application):
-    a.  Receives the message and authenticates the user (via Telegram ID).
-    b.  Validates the request.
-    c.  Stores the request details directly in Supabase using the Supabase Python client library.
-    d.  (Optionally) Generates embeddings for the request text by calling the OpenAI API.
-    e.  Queries Supabase for the user's 1st and 2nd-degree connections and their profiles.
-    f.  Performs AI matching (keyword or embedding-based) considering trust scores and relevance, using data retrieved from Supabase.
-    g.  Formats and displays the list of potential helpers back to the user in Telegram.
+    BotApp -- 4. Sends Welcome in Group --> BotAPI
 
----
+```
 
-## 4. **Component Design**
+### 3.2. Component Breakdown
 
-### 4.1. Telegram Bot Application
-*   **Technology:** Python (aiogram), Supabase Python Client, OpenAI Python Client.
-*   **Responsibilities:**
-    *   Handle all user commands and messages from Telegram.
-    *   Manage conversation flows (finite state machine for multi-step processes).
-    *   Format and display data to the user.
-    *   Directly perform CRUD operations on Supabase for user profiles, connections, requests, etc.
-    *   Implement business logic for social points, request economy, and subscription status checks (querying Supabase).
-    *   Call the OpenAI API for embeddings generation.
-    *   Execute the AI matching algorithm (keyword-based or vector similarity search against Supabase data).
-    *   Schedule and send daily digests/notifications (e.g., using `apscheduler` library within the bot process).
-    *   Generate unique invitation links.
-    *   Handle payment integration callbacks (if a payment provider's webhook directly calls an endpoint exposed by the bot, or through polling/manual checks based on payment provider integration).
-*   **Key Internal Modules (Conceptual within the Python application):**
-    *   `handlers/`: Contains modules for command handlers, message handlers, callback query handlers.
-    *   `fsm_states/`: Defines states for conversation flows.
-    *   `services/supabase_service.py`: A wrapper for all Supabase client interactions (CRUD operations, custom queries).
-    *   `services/ai_matching_service.py`: Contains logic for keyword extraction, OpenAI API calls, embedding generation, and performing matching queries against Supabase (e.g., using `pg_vector` functions via the Supabase client).
-    *   `services/user_service.py`: Manages user profile logic, social points, subscription status.
-    *   `services/graph_service.py`: Manages connection logic and trust scores.
-    *   `services/request_service.py`: Manages request creation and lifecycle.
-    *   `services/notification_service.py`: Manages creation and sending of daily digests.
-    *   `services/payment_service.py`: (If applicable for MVP) Stubs or basic integration for payment provider interactions.
-    *   `scheduler.py`: Configures and runs scheduled tasks like daily digests.
-    *   `main.py` / `bot.py`: Entry point, initializes bot, dispatcher, and services.
+1.  **Telegram Bot API:** This is the external interface provided by Telegram. Our application communicates with it exclusively. We will use webhooks for production for instant updates, but long polling can be used for development.
 
-### 4.2. Data Storage (Supabase)
-*   **Technology:** Supabase (PostgreSQL backend, REST APIs, Auth, Storage, `pg_vector` extension)
-*   **Responsibilities:**
-    *   Persistent storage for all application data.
-    *   User authentication using Telegram User ID as the primary identifier.
-    *   Data access through the Supabase Python client library by the Telegram Bot application.
-    *   Row Level Security (RLS) to enforce data access policies, providing an additional layer of security even with direct client access.
-    *   Storing and indexing vector embeddings for AI matching (`pg_vector`).
-*   **Key Tables (Schema Sketch - same as PRD):**
-    *   **`users`**:
-        *   `telegram_id` (PK, BigInt, unique), `name` (Text), `role` (Text), `industry` (Text), `skills` (Text[]), `goals` (Text[]), `interests` (Text[]), `profile_embedding` (Vector), `social_points` (Int), `free_requests_remaining` (Int), `subscription_tier` (Text), `subscription_expires_at` (Timestamp), `last_active_at` (Timestamp), `is_active_in_search` (Boolean), `created_at`, `updated_at`.
-    *   **`connections`**:
-        *   `id` (UUID, PK), `user1_id` (FK), `user2_id` (FK), `connection_type` (Enum), `trust_score` (Int), `status` (Enum), `created_at`.
-    *   **`requests`**:
-        *   `id` (UUID, PK), `requester_id` (FK), `description_text` (Text), `description_embedding` (Vector), `status` (Enum), `created_at`, `expires_at`.
-    *   **`request_matches_log`**:
-        *   `id` (UUID, PK), `request_id` (FK), `suggested_user_id` (FK), `introducer_user_id` (FK), `match_score` (Float), `status` (Enum), `created_at`.
-    *   **`activity_history`**:
-        *   `id` (UUID, PK), `user_id` (FK), `action_type` (Enum), `related_request_id` (FK), `points_change` (Int), `timestamp`.
-    *   **`subscriptions`**:
-        *   `id` (UUID, PK), `user_id` (FK), `plan_name` (Text), `payment_provider_subscription_id` (Text), `start_date`, `end_date`, `status` (Enum).
+2.  **Bot Application:** This is the core of our system, written in Python. It is a stateless application responsible for all business logic. It can be broken down into several logical modules:
+    *   **Webhook/API Handler:** The entry point for all incoming updates from the Telegram API. It receives JSON objects, parses them, and routes them to the appropriate command or state handler.
+    *   **State Manager (FSM):** Manages the user's state during multi-step operations, like the profile creation dialogue. For example, it knows if the next message from a user is expected to be their name, company, or tags.
+    *   **Command Handlers:** Modules that contain the logic for specific commands (`/start`, `/myprofile`, `/search`).
+    *   **Profile Service:** A dedicated module for all CRUD (Create, Read, Update, Delete) operations related to user profiles. It acts as an abstraction layer over the database.
+    *   **Matching Service:** Contains the algorithm for matching users. It queries the database for users whose "own tags" match the current user's "search tags".
+    *   **Database Client:** Manages the connection to the database and executes queries, likely through an Object-Relational Mapper (ORM).
 
-### 4.3. AI Matching Logic (MVP: Keyword/Profile-based within Bot Application)
-*   **Technology (MVP):** Python logic within the bot application, direct SQL queries to Supabase (via its client) using `ILIKE` or PostgreSQL Full-Text Search (FTS).
-*   **Post-MVP Enhancement:** OpenAI Embeddings API (called from bot application), vector storage in Supabase (`pg_vector`), and cosine similarity queries executed via Supabase client.
-*   **Responsibilities (MVP):**
-    *   Bot application receives a user's request.
-    *   Bot application extracts keywords from the request description.
-    *   Bot application queries Supabase for profiles of 1st and 2nd-degree connections.
-    *   Bot application performs keyword matching against profile attributes (`skills`, `role`, `industry`, etc.).
-    *   Bot application ranks helpers based on match score, connection degree, trust score, and activity.
-*   **Logic Flow (MVP - executed by the bot application):**
-    1.  Input: Request text, requester's Telegram ID.
-    2.  Keyword Extraction: Bot extracts keywords from request text.
-    3.  Candidate Retrieval: Bot queries Supabase for 1st/2nd degree friends and their profiles.
-    4.  Candidate Evaluation: For each candidate, bot compares request keywords with profile fields. Score based on matches.
-    5.  Score Weighting: Adjust score by connection degree, trust score (from Supabase), user activity.
-    6.  Filtering & Ranking: Bot filters low-score candidates and ranks the rest.
-    7.  Output: Bot presents top N candidates to the requester.
+3.  **Database:** A persistent storage for all user profiles and their associated tags. Given the relational nature of the data (users, tags, and the link between them), a relational database like PostgreSQL is ideal.
 
-### 4.4. Payment Integration
-*   **Technology:** Stripe (or similar) Python SDK.
-*   **Responsibilities (within Bot application):**
-    *   Bot application guides users through subscription sign-up (e.g., sending a Stripe checkout link).
-    *   Bot application may need a simple, secure webhook endpoint (if Railway allows incoming HTTP to bot process easily) or rely on periodic checks/manual updates for payment success.
-    *   Bot application updates user subscription status and quotas in Supabase based on payment confirmations.
+## 4. Data Model
 
----
+To efficiently query tags, we will use a normalized schema with a many-to-many relationship between users and tags. This is far superior to storing tags as a comma-separated string.
 
-## 5. **Data Design**
+### 4.1. ERD (Entity-Relationship Diagram)
 
-Refer to Section 4.2 (Data Storage - Supabase) for the database schema.
+```
+[Users] --< [User_Tags] >-- [Tags]
+```
 
-### 5.1. Data Flow
-*   **User Onboarding:** Telegram -> Bot App -> Supabase (create user).
-*   **Profile Update:** Telegram -> Bot App -> Supabase (update user).
-*   **Making a Request:** Telegram -> Bot App (processes, calls OpenAI if needed, queries Supabase for graph/profiles, performs matching) -> Supabase (store request, log matches) -> Bot App -> Telegram.
-*   **Responding to Digest:** Telegram -> Bot App -> Supabase (update `request_matches_log`, `activity_history`, `social_points`).
+### 4.2. Table Schema
 
-### 5.2. Data Backup and Recovery
-*   Supabase provides automated daily backups and Point-in-Time Recovery (PITR) capabilities. This will be the primary mechanism.
+**Table: `users`**
+*Stores the main profile information for each user.*
 
----
+| Column        | Type          | Constraints              | Description                               |
+| :------------ | :------------ | :----------------------- | :---------------------------------------- |
+| `telegram_id` | `BIGINT`      | `PRIMARY KEY`, `NOT NULL`| The user's unique Telegram ID.            |
+| `name`        | `VARCHAR(255)`|                          | The name the user provides.               |
+| `company`     | `VARCHAR(255)`|                          | The user's company.                       |
+| `title`       | `VARCHAR(255)`|                          | The user's job title.                     |
+| `is_active`   | `BOOLEAN`     | `DEFAULT true`           | For soft deletes. If false, not in search.|
+| `created_at`  | `TIMESTAMPTZ` | `DEFAULT now()`          | Timestamp of profile creation.            |
+| `updated_at`  | `TIMESTAMPTZ` | `DEFAULT now()`          | Timestamp of last profile update.         |
 
-## 6. **Integration and APIs**
+**Table: `tags`**
+*Stores all unique tags to avoid duplication.*
 
-*   **External APIs used by the Bot Application:**
-    *   **Telegram Bot API:** Used by `aiogram` to send/receive messages.
-    *   **Supabase API:** Primarily via Supabase Python client library for database operations and auth.
-    *   **OpenAI API:** For generating text embeddings.
-    *   **Payment Gateway API (e.g., Stripe):** Via Python SDK for processing payments.
+| Column     | Type          | Constraints               | Description                      |
+| :--------- | :------------ | :------------------------ | :------------------------------- |
+| `id`       | `SERIAL`      | `PRIMARY KEY`             | Auto-incrementing primary key.   |
+| `tag_name` | `VARCHAR(100)`| `UNIQUE`, `NOT NULL`      | The text of the tag (e.g., "cpa").|
 
----
+**Table: `user_tags` (Join Table)**
+*Links users to tags and defines the type of association.*
 
-## 7. **Deployment and Infrastructure**
+| Column        | Type      | Constraints                                  | Description                                   |
+| :------------ | :-------- | :------------------------------------------- | :-------------------------------------------- |
+| `user_id`     | `BIGINT`  | `FOREIGN KEY (users.telegram_id)`, `NOT NULL`| References the user.                          |
+| `tag_id`      | `INTEGER` | `FOREIGN KEY (tags.id)`, `NOT NULL`          | References the tag.                           |
+| `tag_type`    | `VARCHAR(10)` | `CHECK(tag_type IN ('own', 'search'))`   | Defines if it's a self-describing or search tag. |
+| **Composite Primary Key on (`user_id`, `tag_id`, `tag_type`)**                                                          |
 
-### 7.1. Hosting
-*   **Telegram Bot Application (Python/aiogram):** Railway. Railway hosts the single Python application.
-*   **Database:** Supabase (managed PostgreSQL).
+*This design allows for highly efficient search queries, e.g., finding all users who have an 'own' tag that someone else has as a 'search' tag.*
 
-### 7.2. CI/CD
-*   **Source Control:** Git (e.g., GitHub).
-*   **CI/CD Pipeline:** GitHub Actions (or Railway's native Git integration) to automatically build and deploy the bot application to Railway upon pushes to the main branch.
+## 5. Technology Stack
 
-### 7.3. Environment Configuration
-*   Separate configurations for `development` and `production` environments.
-*   Sensitive information (Telegram Bot Token, Supabase URL/keys, OpenAI API key, payment provider keys) managed via environment variables in Railway.
+| Component                | Technology Choice             | Justification                                                                                                                                                                                            |
+| :----------------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Language**             | Python 3.10+                  | Specified in the prompt. Excellent ecosystem, fast development, and powerful libraries for bot creation.                                                                                                   |
+| **Telegram Bot Framework** | **`aiogram` 3.x**               | A modern, fully asynchronous framework. Its built-in Finite State Machine (FSM) is perfect for creating the multi-step profile creation dialogue. Asynchronous nature is key for performance and scalability. |
+| **Database**             | **PostgreSQL (via Supabase)** | PRD mentioned Supabase. Supabase provides a managed PostgreSQL instance, a generous free tier, and easy-to-use APIs, simplifying backend setup. PostgreSQL is powerful and reliably handles relational data.  |
+| **Database Client/ORM**  | **`SQLAlchemy 2.0` (Async)** or `asyncpg` | SQLAlchemy provides a powerful ORM to map Python objects to database tables, reducing raw SQL. `asyncpg` is a lower-level, highly performant driver if an ORM is not desired.                     |
+| **Deployment / Hosting** | **Railway.app**      | PaaS (Platform as a Service) providers that are extremely developer-friendly. They offer easy Git-based deployment, managed environments, and automatic scaling, aligning with our reliability goal.         |
+| **Configuration**        | Environment Variables         | All secrets (Telegram Bot Token, Database URL) will be managed via environment variables (e.g., in a `.env` file for development and platform secrets for production) to ensure security.                    |
 
----
+## 6. Deployment & Operations
 
-## 8. **Security Considerations**
+1.  **Environment Setup:**
+    *   **Development:** Local machine with Python, a `.env` file for secrets, and long polling for updates from Telegram. The database can be the free tier of Supabase or a local Docker instance of PostgreSQL.
+    *   **Production:** A PaaS like Render. The application will be deployed as a web service. Secrets will be configured in the Render environment settings.
 
-*   **Authentication:** User identity tied to their unique Telegram User ID. The bot application uses this for all operations.
-*   **Authorization:**
-    *   Bot logic ensures users can only modify their own data.
-    *   Supabase Row Level Security (RLS) configured to provide database-level protection, ensuring the bot's API key for Supabase has appropriately restricted access.
-*   **Data Privacy:**
-    *   Adherence to data privacy best practices.
-*   **API Key Security:**
-    *   Supabase API keys, OpenAI key, and other sensitive keys stored securely as environment variables on Railway, not in code.
-    *   Use Supabase's `anon` key for client-side operations if ever doing direct DB calls from a TWA (post-MVP), and `service_role` key securely within the bot application. For bot-only MVP, `service_role` key is used by the bot.
-*   **Input Validation:** The bot application validates all user inputs to prevent errors and basic injection-style attacks before interacting with Supabase or other services.
-*   **Spam/Abuse Prevention:**
-    *   Social points system and paid requests as deterrents.
-    *   Rate limiting for bot commands handled by `aiogram` middleware if necessary.
+2.  **Deployment Process:**
+    *   Code will be managed in a Git repository (e.g., GitHub).
+    *   Pushing to the `main` branch will trigger an automatic build and deployment on the hosting platform.
+    *   The platform will run the bot application using a process manager like `gunicorn` or `uvicorn`.
 
----
+3.  **Webhook Configuration:**
+    *   Once deployed, a one-time setup is required to register the application's URL with the Telegram Bot API using the `setWebhook` method. This tells Telegram where to send updates.
 
-## 9. **Scalability and Performance**
+## 7. Security Considerations
 
-*   **Bot Application:** `aiogram` is asynchronous. Railway can scale the service running the bot application if needed (e.g., by increasing resources or running multiple instances if the bot is stateless or state is managed externally).
-*   **Database:** Supabase can scale its PostgreSQL instances. Proper indexing in Supabase tables is crucial.
-*   **AI Matching:**
-    *   OpenAI API calls are external; bot handles them asynchronously.
-    *   Vector search in Supabase (`pg_vector`) needs appropriate indexing (HNSW).
-*   **Asynchronous Tasks:** `aiogram` handles I/O-bound tasks asynchronously. CPU-bound tasks within matching or digest generation should be optimized or run in a way that doesn't block the main bot event loop (e.g., `asyncio.to_thread` for short tasks, or if Railway supports, separate worker processes for heavy jobs like daily digest generation for many users). For MVP, `apscheduler` within the bot process should be sufficient.
-
----
-
-## 10. **Monitoring and Logging**
-
-*   **Application Logging:** Structured logging within the `aiogram` bot application. Logs streamed to Railway's logging service.
-*   **Error Tracking:** Integrate a service like Sentry for real-time error reporting.
-*   **Supabase Monitoring:** Supabase dashboard provides insights into database performance and usage.
-*   **Key Metrics to Monitor (Technical):** Bot response times, error rates, Supabase query performance, OpenAI API latency.
-
----
-
-## 11. **Future Considerations (Post-MVP Architectural Evolution)**
-
-*   **Telegram Mini App (TWA):** The bot application might evolve to expose a few simple, secure HTTP endpoints (e.g., using `aiohttp` alongside `aiogram`) for the TWA, or the TWA could interact with Supabase directly (secured with RLS and user-specific JWTs from Supabase Auth). This is the primary planned evolution for UI enhancement.
-*   **Dedicated Backend Service:** If the bot application's logic becomes too complex or if more robust API capabilities are needed for the TWA or other future integrations, a dedicated FastAPI backend service could be developed. The bot would then communicate with this backend.
-*   **Graph Database:** If graph queries become a bottleneck, consider migration.
-*   **Advanced AI/ML & Real-time Features:** As per original ADD.
-
----
-
-## 12. **Risks and Mitigation (Technical)**
-
-*   **Cold Start - User Graph Density:**
-    *   *Risk:* Users have few connections, making matching ineffective.
-    *   *Mitigation:* Design efficient "invite friend" flows.
-*   **AI Matching Accuracy:**
-    *   *Risk:* AI provides irrelevant matches.
-    *   *Mitigation:* Start with simpler keyword matching. Implement feedback.
-*   **Scalability of Bot Application:**
-    *   *Risk:* Single bot process becomes a bottleneck for CPU-bound tasks or managing too many concurrent users/scheduled jobs.
-    *   *Mitigation:* Optimize code. Ensure heavy tasks are non-blocking. Plan for potential separation of concerns (e.g., scheduler to a separate small worker) if Railway supports it easily or if moving to a more flexible hosting.
-*   **Supabase Limitations/Costs:**
-    *   *Risk:* Hitting Supabase free/paid tier limits unexpectedly.
-    *   *Mitigation:* Monitor usage. Optimize queries. Business logic largely in Python, allowing easier migration of compute if needed.
-*   **Telegram Bot API Limitations:**
-    *   *Risk:* UI constraints, rate limits.
-    *   *Mitigation:* Design interactions efficiently. Plan for TWA. Handle API rate limits in code.
-*   **Monolithic Bot Complexity:**
-    *   *Risk:* The single Python application becomes difficult to maintain as features grow.
-    *   *Mitigation:* Strict modular design within the bot application. Clear separation of concerns into services/modules. Be prepared to refactor parts into a dedicated backend service (see Future Considerations) if complexity grows beyond manageable limits for a single bot codebase.
+*   **API Token Security:** The Telegram Bot Token and Database Connection String will **never** be hardcoded. They will be loaded from environment variables.
+*   **Input Sanitization:** While Telegram messages are less prone to injection than web forms, all user-provided text (name, company, etc.) will be treated as plain text and not executed or rendered as HTML without proper escaping.
+*   **Rate Limiting:** `aiogram` provides middleware for basic rate limiting to prevent individual users from spamming the bot with commands.
+*   **Data Privacy:** Only the data specified in the PRD will be collected. The bot will not have access to messages in the group that are not directed at it (if bot privacy mode is enabled).
 
 ---

@@ -1,31 +1,31 @@
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
-# Add metadata labels
-LABEL maintainer="NetWise Team"
-LABEL description="NetWise Telegram Bot"
-LABEL version="1.0"
-
 # Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-
 # Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy project files
 COPY . .
 
-# Create non-root user for security
-RUN useradd -m -u 1000 netwise
-USER netwise
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+USER appuser
 
 # Command to run the application
-CMD ["python", "main.py"] 
+CMD ["python", "app/bot.py"] 
