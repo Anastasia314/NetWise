@@ -7,6 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 
 from app.config import get_settings
 from app.handlers import register_all_handlers
+from app.handlers.profile_management import router as profile_management_router
 
 # Load settings
 settings = get_settings()
@@ -29,6 +30,9 @@ async def main():
 
     # Register all handlers
     register_all_handlers(dp)
+
+    # Register profile management router
+    dp.include_router(profile_management_router)
 
     try:
         # Start polling
