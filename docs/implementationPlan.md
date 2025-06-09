@@ -67,11 +67,11 @@
     -   [x] В `app/keyboards/inline.py` создать функцию `get_profile_management_keyboard`, возвращающую кнопки `[✏️ Изменить профиль]` и `[🗑️ Удалить профиль]`.
     -   [x] В `app/keyboards/inline.py` создать функцию для клавиатуры подтверждения удаления.
 
--   [ ] **Task 2.3: Реализация хендлеров для `/myprofile` (FR-5)**
-    -   [ ] В `app/handlers/profile_management.py` создать хендлер для команды `/myprofile`.
-    -   [ ] Хендлер должен вызывать `get_user_profile`, форматировать данные в сообщение и отправлять его с `get_profile_management_keyboard`.
-    -   [ ] Создать callback-хендлер для кнопки "Удалить". Он должен запросить подтверждение, а затем вызвать `set_user_inactive`.
-    -   [ ] Создать callback-хендлер для кнопки "Изменить", который заново запускает FSM из Milestone 1.
+-   [x] **Task 2.3: Реализация хендлеров для `/myprofile` (FR-5)**
+    -   [x] В `app/handlers/profile_management.py` создать хендлер для команды `/myprofile`.
+    -   [x] Хендлер должен вызывать `get_user_profile`, форматировать данные в сообщение и отправлять его с `get_profile_management_keyboard`.
+    -   [x] Создать callback-хендлер для кнопки "Удалить". Он должен запросить подтверждение, а затем вызвать `set_user_inactive`.
+    -   [x] Создать callback-хендлер для кнопки "Изменить", который заново запускает FSM из Milestone 1.
 
 ### Milestone 3: Поиск и мэтчинг (Core Value)
 
