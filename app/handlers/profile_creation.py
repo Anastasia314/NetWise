@@ -110,8 +110,8 @@ def get_edit_profile_keyboard() -> InlineKeyboardMarkup:
     # Add back button
     builder.add(
         InlineKeyboardButton(
-            text="◀️ Назад",
-            callback_data="back_to_preview"
+            text="Все ок",
+            callback_data="confirm_profile_ready"
         )
     )
     
@@ -538,14 +538,14 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext):
             
             # Send success message
             await callback.message.edit_text(
-                "✅ Профиль успешно создан!\n\n"
+                "✅ Профиль успешно обновлен!\n\n"
                 "Теперь ты можешь использовать команду /search для поиска других участников."
             )
             
         except Exception as e:
             # Handle error
             await callback.message.edit_text(
-                "❌ Произошла ошибка при создании профиля. Пожалуйста, попробуй позже."
+                "❌ Произошла ошибка при обновлении профиля. Пожалуйста, попробуй позже."
             )
             print(f"Error creating profile: {e}")
             
@@ -670,4 +670,15 @@ async def process_edit_field(callback: CallbackQuery, state: FSMContext):
         else:
             await callback.message.edit_text(edit_info["question"])
     
-    await callback.answer() 
+    await callback.answer()
+
+@router.callback_query(F.data == "confirm_profile_ready")
+async def confirm_profile_handler(callback: CallbackQuery):
+    """Handle profile confirmation
+    
+    Args:
+        callback: CallbackQuery object
+    """
+    await callback.message.edit_reply_markup()  # Remove keyboard
+    await callback.message.answer("Теперь ты можешь использовать команду /search для поиска других участников.")
+    await callback.answer()  # Close loading indicator 

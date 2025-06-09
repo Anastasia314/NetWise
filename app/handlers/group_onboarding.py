@@ -23,7 +23,7 @@ async def on_user_join(event: ChatMemberUpdated):
     )
     
     # Send welcome message with keyboard
-    await event.answer(
+    await event.message.answer(
         text=welcome_text,
         reply_markup=get_onboarding_keyboard(),
         parse_mode="HTML"

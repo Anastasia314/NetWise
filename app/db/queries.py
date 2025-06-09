@@ -1,9 +1,14 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from datetime import datetime
 from .models import User, Tag, user_tag
 from supabase import Client
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class TagType(str):
     OWN = 'own'
@@ -237,4 +242,120 @@ def set_user_inactive(supabase: Client, telegram_id: int) -> bool:
         
     except Exception as e:
         print(f"Error setting user inactive: {e}")
-        return False 
+        return False
+
+
+def get_all_tags(db: Session) -> List[str]:
+    """Get all available tags from the database
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        List[str]: List of tag names
+    """
+    tags = db.query(Tag.name).order_by(Tag.name).all()
+    return [tag[0] for tag in tags]
+
+def get_all_industries(db: Session) -> List[str]:
+    """Get all available industries from the database
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        List[str]: List of industry names
+    """
+    # Get unique industries from users table
+    industries = db.query(User.industry).distinct().filter(User.industry.isnot(None)).order_by(User.industry).all()
+    return [industry[0] for industry in industries]
+
+def find_matching_users(supabase, current_user: dict, limit: int = 5, offset: int = 0, selected_tags: List[int] = None) -> Tuple[List[dict], int]:
+    """Find users whose tags match the current user's search tags
+    
+    Args:
+        supabase: Supabase client
+        current_user: Current user data
+        limit: Number of results per page (fixed)
+        offset: Offset for pagination (variable, calculated as (page - 1) * limit)
+        selected_tags: List of tag IDs to search by (optional)
+        
+    Returns:
+        Tuple of (list of matching user profiles, total count)
+    """
+    logger.info(f"Starting find_matching_users with limit={limit}, offset={offset}")
+    logger.info(f"Current user ID: {current_user.get('id')}")
+    logger.info(f"Selected tags: {selected_tags}")
+    
+    # Get user's search tags if not provided
+    if not selected_tags:
+        logger.info("No selected tags provided, fetching user's tags")
+        # Get user's tags
+        result = supabase.table("user_tags") \
+            .select("tag_id") \
+            .eq("user_id", current_user["id"]) \
+            .execute()
+        selected_tags = [tag["tag_id"] for tag in result.data]
+        logger.info(f"Fetched user tags: {selected_tags}")
+    
+    if not selected_tags:
+        logger.info("No tags found, returning empty result")
+        return [], 0
+        
+    # First get total count of matching users
+    logger.info("Getting total count of matching users")
+    count_result = supabase.table("user_tags") \
+        .select("user_id", count="exact") \
+        .in_("tag_id", selected_tags) \
+        .neq("user_id", current_user["id"]) \
+        .execute()
+    
+    total_count = count_result.count if count_result.count is not None else 0
+    logger.info(f"Total matching users count: {total_count}")
+    
+    if total_count == 0:
+        logger.info("No matching users found, returning empty result")
+        return [], 0
+        
+    # Get all matching user IDs first
+    logger.info("Fetching all matching user IDs")
+    result = supabase.table("user_tags") \
+        .select("user_id") \
+        .in_("tag_id", selected_tags) \
+        .neq("user_id", current_user["id"]) \
+        .execute()
+        
+    if not result.data:
+        logger.info("No user IDs found in result data")
+        return [], total_count
+        
+    # Get unique user IDs
+    all_user_ids = list(set(tag["user_id"] for tag in result.data))
+    logger.info(f"Total unique user IDs found: {len(all_user_ids)}")
+    logger.info(f"All user IDs: {all_user_ids}")
+    
+    # Apply pagination to the list of user IDs
+    start_idx = offset
+    end_idx = min(offset + limit, len(all_user_ids))
+    paginated_user_ids = all_user_ids[start_idx:end_idx]
+    logger.info(f"Pagination: start_idx={start_idx}, end_idx={end_idx}")
+    logger.info(f"Paginated user IDs: {paginated_user_ids}")
+    
+    if not paginated_user_ids:
+        logger.info("No users in paginated result")
+        return [], total_count
+    
+    # Get user profiles with their tags and industry
+    logger.info("Fetching user profiles for paginated IDs")
+    users_result = supabase.table("users") \
+        .select("*, industries!inner(id,name), user_tags!inner(tags!inner(id,name))") \
+        .in_("id", paginated_user_ids) \
+        .execute()
+    
+    logger.info(f"Found {len(users_result.data)} user profiles")
+    
+    # Проверяем, есть ли еще страницы
+    has_next_page = end_idx < len(all_user_ids)
+    logger.info(f"Has next page: {has_next_page}")
+    
+    return users_result.data, total_count 
