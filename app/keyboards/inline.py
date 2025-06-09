@@ -86,8 +86,5 @@ def get_pagination_keyboard(current_page: int, total_pages: int) -> InlineKeyboa
         ))
     
     keyboard.append(row)
-    logger.info(f"Created keyboard with buttons: {[btn.callback_data for btn in row]}")
-    logger.info("PAGINATION KEYBOARD CREATED")
-    logger.info("="*50)
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard) 

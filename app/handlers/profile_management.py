@@ -82,7 +82,6 @@ async def cancel_delete_callback(callback: CallbackQuery):
         "❌ Удаление профиля отменено."
     )
 
-# Reuse edit field handler from profile_creation
 @router.callback_query(F.data.in_([
     "edit_first_name",
     "edit_last_name",
@@ -116,6 +115,6 @@ async def edit_field_callback(callback: CallbackQuery, state: FSMContext):
             own_tags=tag_ids,
             editing_mode=True
         )
-    
+
     # Use the edit field handler from profile_creation
-    await process_edit_field(callback, state) 
+    await process_edit_field(callback, state)

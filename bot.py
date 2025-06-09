@@ -31,16 +31,13 @@ async def main():
     dp.update.middleware(DatabaseMiddleware())
     
     # Register all handlers
-    logger.info("Registering handlers...")
     register_all_handlers(dp)
-    logger.info("Handlers registered successfully")
     
     # Initialize Supabase client
     supabase = get_supabase_client()
     dp["supabase"] = supabase
     
     # Start polling
-    logger.info("Starting bot...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
