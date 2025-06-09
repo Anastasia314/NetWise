@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from .models import User, Tag, user_tag
+from supabase import Client
 
 class TagType(str):
     OWN = 'own'
@@ -173,4 +174,67 @@ def update_user_industry_tags(db: Session, user_id: int, industry: str) -> None:
         tag_id=tag.id,
         tag_type=TagType.OWN
     )
-    db.execute(stmt) 
+    db.execute(stmt)
+
+def get_user_profile(supabase: Client, telegram_id: int) -> Optional[Dict]:
+    """
+    Get full user profile data including tags.
+    
+    Args:
+        supabase: Supabase client instance
+        telegram_id: User's Telegram ID
+        
+    Returns:
+        Dict containing user profile data or None if user not found
+    """
+    try:
+        # Get user data with industry
+        user_result = supabase.table("users") \
+            .select("*, industries(name)") \
+            .eq("telegram_id", telegram_id) \
+            .eq("is_active", True) \
+            .single() \
+            .execute()
+        
+        if not user_result.data:
+            return None
+            
+        user_data = user_result.data
+        
+        # Get user tags
+        tags_result = supabase.table("user_tags") \
+            .select("tags(id, name)") \
+            .eq("user_id", user_data["id"]) \
+            .execute()
+            
+        # Extract tag names
+        user_data["tags"] = [tag["tags"]["name"] for tag in tags_result.data]
+        
+        return user_data
+        
+    except Exception as e:
+        print(f"Error getting user profile: {e}")
+        return None
+
+def set_user_inactive(supabase: Client, telegram_id: int) -> bool:
+    """
+    Soft delete user by setting is_active to false.
+    
+    Args:
+        supabase: Supabase client instance
+        telegram_id: User's Telegram ID
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        result = supabase.table("users") \
+            .update({"is_active": False}) \
+            .eq("telegram_id", telegram_id) \
+            .execute()
+            
+        return bool(result.data)
+        
+    except Exception as e:
+        print(f"Error setting user inactive: {e}")
+        return False 

@@ -59,9 +59,9 @@
 
 ### Milestone 2: Управление профилем (Profile Management)
 
--   [ ] **Task 2.1: Реализация логики БД для управления профилем**
-    -   [ ] В `app/db/queries.py` создать функцию `get_user_profile(telegram_id)`, которая возвращает полные данные профиля пользователя, включая его теги.
-    -   [ ] В `app/db/queries.py` создать функцию `set_user_inactive(telegram_id)` для "мягкого" удаления (устанавливает `is_active = false`).
+-   [x] **Task 2.1: Реализация логики БД для управления профилем**
+    -   [x] В `app/db/queries.py` создать функцию `get_user_profile(telegram_id)`, которая возвращает полные данные профиля пользователя, включая его теги.
+    -   [x] В `app/db/queries.py` создать функцию `set_user_inactive(telegram_id)` для "мягкого" удаления (устанавливает `is_active = false`).
 
 -   [ ] **Task 2.2: Реализация клавиатур для управления профилем**
     -   [ ] В `app/keyboards/inline.py` создать функцию `get_profile_management_keyboard`, возвращающую кнопки `[✏️ Изменить профиль]` и `[🗑️ Удалить профиль]`.
