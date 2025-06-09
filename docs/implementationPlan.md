@@ -31,8 +31,8 @@
 
 ### Milestone 1: Онбординг и создание профиля (Core User Flow)
 
--   [ ] **Task 1.1: Определение состояний (FSM)**
-    -   [ ] В `app/states/profile_states.py` определить класс `ProfileState(StatesGroup)` со всеми состояниями для сбора данных профиля (`waiting_for_name`, `waiting_for_company` и т.д.).
+-   [x] **Task 1.1: Определение состояний (FSM)**
+    -   [x] В `app/states/profile_states.py` определить класс `ProfileState(StatesGroup)` со всеми состояниями для сбора данных профиля (`waiting_for_name`, `waiting_for_company` и т.д.).
 
 -   [ ] **Task 1.2: Реализация логики БД для создания профиля**
     -   [ ] В `app/db/queries.py` создать функцию `create_or_update_user_profile`. Эта функция должна в рамках одной транзакции:
